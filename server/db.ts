@@ -11,5 +11,13 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Configure for Replit environment - disable SSL verification for local development
+const poolConfig = {
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('helium') 
+    ? false 
+    : { rejectUnauthorized: false }
+};
+
+export const pool = new Pool(poolConfig);
 export const db = drizzle({ client: pool, schema });
