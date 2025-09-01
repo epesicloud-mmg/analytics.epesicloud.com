@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - Snappy Learn</title>
+    <meta name="description" content="Snappy Learn Dashboard - Manage your analytics projects and team">
+    <!-- Tailwind CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        /* Custom styles */
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary: #f3f4f6;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #e5e7eb;
+            --sidebar-width: 16rem;
+            --sidebar-collapsed-width: 4rem;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0a0a0;
+        }
+        
+        /* Sidebar transitions */
+        .sidebar-transition {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* Sidebar states */
+        .sidebar-expanded {
+            width: var(--sidebar-width);
+        }
+        
+        .sidebar-collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+        
+        /* Content margin adjustments */
+        .content-expanded {
+            margin-left: var(--sidebar-width);
+        }
+        
+        .content-collapsed {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+        
+        /* Sidebar text visibility */
+        .sidebar-text {
+            opacity: 1;
+            transform: translateX(0);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        
+        .sidebar-collapsed .sidebar-text {
+            opacity: 0;
+            transform: translateX(-10px);
+            pointer-events: none;
+        }
+        
+        /* Tooltips for collapsed state */
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 120px;
+            background-color: #1f2937;
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 8px;
+            position: absolute;
+            z-index: 1000;
+            left: 125%;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        
+        .tooltip .tooltip-text::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: 100%;
+            margin-top: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent #1f2937 transparent transparent;
+        }
+        
+        .sidebar-collapsed .tooltip:hover .tooltip-text {
+            visibility: visible;
+        }
+        
+        /* Selector dropdown styles */
+        .selector-dropdown {
+            transition: all 0.3s ease;
+        }
+        
+        .selector-dropdown:hover {
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+
+        .loading-skeleton { 
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); 
+            background-size: 200% 100%; 
+            animation: loading 1.5s infinite; 
+        }
+        
+        @keyframes loading { 
+            0% { background-position: 200% 0; } 
+            100% { background-position: -200% 0; } 
+        }
+
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .sidebar-expanded,
+            .sidebar-collapsed {
+                width: var(--sidebar-width);
+                transform: translateX(-100%);
+            }
+            
+            .sidebar-mobile-open {
+                transform: translateX(0) !important;
+            }
+            
+            .content-expanded,
+            .content-collapsed {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar-expanded sidebar-transition bg-white shadow-md fixed h-full z-20 overflow-y-auto">
+        <!-- Sidebar Header -->
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <!-- Logo -->
+                <div class="flex items-center min-w-0">
+                    <svg class="h-8 w-8 text-indigo-600 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 4L4 8L12 12L20 8L12 4Z" fill="currentColor"/>
+                        <path d="M4 12L12 16L20 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 16L12 20L20 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="sidebar-text ml-2 text-xl font-semibold text-gray-800 truncate">Snappy Learn</span>
+                </div>
+                
+                <!-- Toggle Button -->
+                <button id="sidebar-toggle" class="p-1 rounded-md hover:bg-gray-100 focus:outline-none flex-shrink-0">
+                    <i class="fas fa-bars text-gray-500 text-lg"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- User Info -->
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex items-center">
+                <div id="sidebar-user-avatar" class="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                    U
+                </div>
+                <div class="sidebar-text ml-3 min-w-0">
+                    <p id="sidebar-user-name" class="text-sm font-medium text-gray-800 truncate">Loading...</p>
+                    <p id="sidebar-user-email" class="text-xs text-gray-500 truncate">user@example.com</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation -->
+        <div class="px-3 py-4">
+            <h3 class="sidebar-text text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">GENERAL</h3>
+            <nav class="space-y-1">
+                <a href="/dashboard" class="tooltip group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                    <i class="fas fa-home text-gray-400 group-hover:text-gray-500 flex-shrink-0 w-5"></i>
+                    <span class="sidebar-text ml-3">Home</span>
+                    <span class="tooltip-text">Home</span>
+                </a>
+                <a href="/projects" class="tooltip group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                    <i class="fas fa-folder text-gray-400 group-hover:text-gray-500 flex-shrink-0 w-5"></i>
+                    <span class="sidebar-text ml-3">Projects</span>
+                    <span class="tooltip-text">Projects</span>
+                </a>
+                <a href="/dashboards" class="tooltip group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                    <i class="fas fa-chart-line text-gray-400 group-hover:text-gray-500 flex-shrink-0 w-5"></i>
+                    <span class="sidebar-text ml-3">Dashboards</span>
+                    <span class="tooltip-text">Dashboards</span>
+                </a>
+                <a href="/data-sources" class="tooltip group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                    <i class="fas fa-database text-gray-400 group-hover:text-gray-500 flex-shrink-0 w-5"></i>
+                    <span class="sidebar-text ml-3">Data Sources</span>
+                    <span class="tooltip-text">Data Sources</span>
+                </a>
+            </nav>
+            
+            <h3 class="sidebar-text text-xs font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2">RECENT PROJECTS</h3>
+            <nav id="recent-projects-nav" class="space-y-1">
+                <!-- Will be populated by JavaScript -->
+            </nav>
+            
+            <h3 class="sidebar-text text-xs font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2">SETTINGS</h3>
+            <nav class="space-y-1">
+                <a href="/account" class="tooltip group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                    <i class="fas fa-user-cog text-gray-400 group-hover:text-gray-500 flex-shrink-0 w-5"></i>
+                    <span class="sidebar-text ml-3">Account</span>
+                    <span class="tooltip-text">Account</span>
+                </a>
+                <a href="/team" class="tooltip group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                    <i class="fas fa-user-friends text-gray-400 group-hover:text-gray-500 flex-shrink-0 w-5"></i>
+                    <span class="sidebar-text ml-3">Team Members</span>
+                    <span class="tooltip-text">Team Members</span>
+                </a>
+                <a href="/preferences" class="tooltip group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                    <i class="fas fa-cog text-gray-400 group-hover:text-gray-500 flex-shrink-0 w-5"></i>
+                    <span class="sidebar-text ml-3">Preferences</span>
+                    <span class="tooltip-text">Preferences</span>
+                </a>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div id="main-wrapper" class="flex-1 flex flex-col content-expanded sidebar-transition">
+        <!-- Top Navbar -->
+        <nav class="bg-white shadow-sm px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+            <div class="flex items-center space-x-4">
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-toggle" class="p-1 rounded-md hover:bg-gray-100 focus:outline-none md:hidden">
+                    <i class="fas fa-bars text-gray-500 text-lg"></i>
+                </button>
+
+                <!-- Organization Selector -->
+                <div id="org-selector-container" class="relative">
+                    <!-- Loading state -->
+                    <div id="org-selector-loading" class="loading-skeleton h-10 w-64 rounded-lg"></div>
+                    
+                    <!-- Actual selector -->
+                    <div id="org-selector-wrapper" class="hidden">
+                        <button id="org-selector" class="selector-dropdown flex items-center space-x-3 bg-gray-50 border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-building text-indigo-600 text-sm"></i>
+                            </div>
+                            <div class="text-left">
+                                <div class="text-sm font-medium" id="current-org-name">Select Organization</div>
+                                <div class="text-xs text-gray-500">Switch Organization</div>
+                            </div>
+                            <i class="fas fa-chevron-down text-gray-400 text-sm"></i>
+                        </button>
+                        
+                        <div id="org-dropdown" class="absolute left-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 hidden">
+                            <div class="p-4 border-b border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-sm font-semibold text-gray-900">Your Organizations</h3>
+                                    <button onclick="openModal('newOrgModal')" class="text-indigo-600 hover:text-indigo-800 transition-colors text-sm flex items-center">
+                                        <i class="fas fa-plus mr-1"></i>Add New
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="org-dropdown-content" class="max-h-64 overflow-y-auto p-2">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- No organizations state -->
+                    <div id="no-orgs-state" class="hidden">
+                        <button onclick="openModal('newOrgModal')" class="bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors flex items-center">
+                            <i class="fas fa-plus mr-2"></i>Create Organization
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Project Selector -->
+                <div id="project-selector-container" class="relative">
+                    <!-- Loading state -->
+                    <div id="project-selector-loading" class="loading-skeleton h-10 w-64 rounded-lg hidden"></div>
+                    
+                    <!-- Actual selector -->
+                    <div id="project-selector-wrapper" class="hidden">
+                        <button id="project-selector" class="selector-dropdown flex items-center space-x-3 bg-gray-50 border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-project-diagram text-purple-600 text-sm"></i>
+                            </div>
+                            <div class="text-left">
+                                <div class="text-sm font-medium" id="current-project-name">Select Project</div>
+                                <div class="text-xs text-gray-500">Switch Project</div>
+                            </div>
+                            <i class="fas fa-chevron-down text-gray-400 text-sm"></i>
+                        </button>
+                        
+                        <div id="project-dropdown" class="absolute left-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 hidden">
+                            <div class="p-4 border-b border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-sm font-semibold text-gray-900">Projects</h3>
+                                    <button onclick="openModal('newProjectModal')" class="text-indigo-600 hover:text-indigo-800 transition-colors text-sm flex items-center">
+                                        <i class="fas fa-plus mr-1"></i>Add New
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="project-dropdown-content" class="max-h-64 overflow-y-auto p-2">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- No projects state -->
+                    <div id="no-projects-state" class="hidden">
+                        <button onclick="openModal('newProjectModal')" class="bg-purple-50 border border-purple-200 text-purple-700 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors flex items-center">
+                            <i class="fas fa-plus mr-2"></i>Create Project
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Search -->
+            <div class="flex-1 max-w-2xl mx-6">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                    <input 
+                        id="global-search"
+                        type="text" 
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-600 placeholder-gray-400" 
+                        placeholder="Search projects or dashboards..."
+                    >
+                </div>
+            </div>
+            
+            <!-- User Actions -->
+            <div class="flex items-center space-x-4">
+                <!-- Notifications -->
+                <button class="p-1.5 rounded-full hover:bg-gray-100 relative focus:outline-none">
+                    <i class="fas fa-bell text-gray-500"></i>
+                    <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
+                </button>
+                
+                <!-- Settings -->
+                <button class="p-1.5 rounded-full hover:bg-gray-100 focus:outline-none">
+                    <i class="fas fa-cog text-gray-500"></i>
+                </button>
+                
+                <!-- User Profile -->
+                <div class="relative">
+                    <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none">
+                        <div id="user-avatar" class="h-9 w-9 rounded-full bg-indigo-500 flex items-center justify-center text-white font-semibold text-sm">
+                            U
+                        </div>
+                        <div class="hidden md:block text-left">
+                            <span id="user-name" class="block text-sm font-medium text-gray-700">Loading...</span>
+                            <span id="user-role" class="block text-xs text-gray-500">User</span>
+                        </div>
+                        <i class="fas fa-chevron-down text-xs text-gray-400 hidden md:block"></i>
+                    </button>
+                    
+                    <div id="user-dropdown" class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border hidden z-50">
+                        <div class="px-4 py-3 border-b border-gray-100">
+                            <div id="dropdown-user-name" class="text-sm font-medium text-gray-900">Loading...</div>
+                            <div id="dropdown-user-email" class="text-sm text-gray-500">user@example.com</div>
+                        </div>
+                        
+                        <div class="py-2">
+                            <a href="/profile" class="block px-4 py-2 text-gray-700 hover:bg-gray-50 flex items-center">
+                                <i class="fas fa-user-cog mr-3 text-gray-400"></i>Profile Settings
+                            </a>
+                            <div class="border-t border-gray-100 my-1"></div>
+                            <a href="/logout" class="block px-4 py-2 text-red-600 hover:bg-red-50 flex items-center">
+                                <i class="fas fa-sign-out-alt mr-3 text-red-500"></i>Sign Out
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 bg-gray-50 overflow-y-auto">
+            {{{body}}}
+        </main>
+    </div>
+    
+    <!-- Mobile Backdrop -->
+    <div id="mobile-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
+    
+    <!-- Create Organization Modal -->
+    <div id="newOrgModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-backdrop fixed inset-0 bg-black bg-opacity-50" onclick="closeModal('newOrgModal')"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Create New Organization</h3>
+                    <button onclick="closeModal('newOrgModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="newOrgForm" class="p-6">
+                    <div class="mb-4">
+                        <label for="orgName" class="block text-sm font-medium text-gray-700 mb-2">Organization Name</label>
+                        <input type="text" id="orgName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="orgDescription" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <textarea id="orgDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal('newOrgModal')" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                        <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Create Organization</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div id="newProjectModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-backdrop fixed inset-0 bg-black bg-opacity-50" onclick="closeModal('newProjectModal')"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Create New Project</h3>
+                    <button onclick="closeModal('newProjectModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="newProjectForm" class="p-6">
+                    <div class="mb-4">
+                        <label for="projectName" class="block text-sm font-medium text-gray-700 mb-2">Project Name</label>
+                        <input type="text" id="projectName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="projectDescription" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <textarea id="projectDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal('newProjectModal')" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                        <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Create Project</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2">
+        <!-- Toasts will be inserted here -->
+    </div>
+    
+    <!-- Layout JavaScript -->
+    <script>
+        // API Base URL
+        const API_BASE = '/api/admin';
+        
+        // Global state
+        let appState = {
+            user: null,
+            organizations: [],
+            projects: [],
+            activeOrganization: null,
+            activeProject: null,
+            isLoading: true,
+            sidebarCollapsed: false
+        };
+
+        // Page config from server (if provided)
+        const serverPageConfig = {
+            isCollapsed: {{#if pageConfig.isCollapsed}}true{{else}}false{{/if}},
+            activeProjectId: {{#if pageConfig.activeProjectId}}"{{pageConfig.activeProjectId}}"{{else}}null{{/if}},
+            pageType: {{#if pageConfig.pageType}}"{{pageConfig.pageType}}"{{else}}"default"{{/if}},
+            showProjectSelector: {{#if pageConfig.showProjectSelector}}true{{else}}false{{/if}},
+            requiresOrganization: {{#if pageConfig.requiresOrganization}}true{{else}}false{{/if}}
+        };
+        
+        // Apply initial sidebar state if provided
+        if (serverPageConfig && serverPageConfig.isCollapsed !== undefined) {
+            appState.sidebarCollapsed = serverPageConfig.isCollapsed;
+        }
+        
+        // Set active project from server config
+        if (serverPageConfig && serverPageConfig.activeProjectId) {
+            appState.activeProjectId = serverPageConfig.activeProjectId;
+        }
+
+        // Utility functions
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+            
+            toast.className = `${bgColor} text-white px-6 py-3 rounded-md shadow-lg flex items-center space-x-2 transform transition-all duration-300 translate-x-full`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info'}-circle"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            document.getElementById('toast-container').appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.classList.add('translate-x-full');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        // Sidebar functions
+        function toggleSidebar() {
+            appState.sidebarCollapsed = !appState.sidebarCollapsed;
+            updateSidebarState();
+        }
+        
+        function updateSidebarState() {
+            const sidebar = document.getElementById('sidebar');
+            const mainWrapper = document.getElementById('main-wrapper');
+            
+            if (appState.sidebarCollapsed) {
+                sidebar.classList.remove('sidebar-expanded');
+                sidebar.classList.add('sidebar-collapsed');
+                mainWrapper.classList.remove('content-expanded');
+                mainWrapper.classList.add('content-collapsed');
+            } else {
+                sidebar.classList.remove('sidebar-collapsed');
+                sidebar.classList.add('sidebar-expanded');
+                mainWrapper.classList.remove('content-collapsed');
+                mainWrapper.classList.add('content-expanded');
+            }
+        }
+        
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('mobile-backdrop');
+            
+            sidebar.classList.toggle('sidebar-mobile-open');
+            backdrop.classList.toggle('hidden');
+        }
+        
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('mobile-backdrop');
+            
+            sidebar.classList.remove('sidebar-mobile-open');
+            backdrop.classList.add('hidden');
+        }
+
+        // API functions
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+            };
+            
+            if (data && method !== 'GET') {
+                options.body = JSON.stringify(data);
+            }
+            
+            const response = await fetch(endpoint, options);
+            return await response.json();
+        }
+
+        async function loadUserData() {
+            try {
+                const response = await apiCall('/api/admin/me');
+                if (response.success) {
+                    appState.user = response.user;
+                    appState.organizations = response.user.organizations || [];
+                    
+                    // Update user UI elements
+                    updateUserUI();
+                    
+                    // Determine active organization
+                    if (response.user.profile?.last_active_organization) {
+                        appState.activeOrganization = response.user.profile.last_active_organization;
+                    } else if (appState.organizations.length > 0) {
+                        appState.activeOrganization = appState.organizations[0];
+                    }
+                    
+                    console.log('User data loaded:', {
+                        organizations: appState.organizations.length,
+                        activeOrg: appState.activeOrganization?.id,
+                        userEmail: response.user.email
+                    });
+                    
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Failed to load user data:', error);
+                return false;
+            }
+        }
+
+        function updateUserUI() {
+            if (!appState.user) return;
+            
+            const email = appState.user.email || 'user@example.com';
+            const name = extractNameFromEmail(email);
+            const initials = getInitials(email);
+            
+            // Update header user info
+            document.getElementById('user-name').textContent = name;
+            document.getElementById('user-role').textContent = 'Admin';
+            document.getElementById('user-avatar').textContent = initials;
+            
+            // Update dropdown user info
+            document.getElementById('dropdown-user-name').textContent = name;
+            document.getElementById('dropdown-user-email').textContent = email;
+            
+            // Update sidebar user info
+            document.getElementById('sidebar-user-name').textContent = name;
+            document.getElementById('sidebar-user-email').textContent = email;
+            document.getElementById('sidebar-user-avatar').textContent = initials;
+        }
+        
+        function extractNameFromEmail(email) {
+            const username = email.split('@')[0];
+            return username.split('.').map(part => 
+                part.charAt(0).toUpperCase() + part.slice(1)
+            ).join(' ');
+        }
+        
+        function getInitials(email) {
+            const name = extractNameFromEmail(email);
+            return name.split(' ').map(part => part.charAt(0)).join('').substring(0, 2).toUpperCase();
+        }
+
+        async function loadOrganizationProjects(orgId) {
+            try {
+                console.log('Loading projects for organization:', orgId);
+                const response = await apiCall(`/api/admin/organizations/${orgId}/projects`);
+                
+                if (response.success) {
+                    appState.projects = response.data || [];
+                    console.log('Projects loaded:', appState.projects.length);
+                    
+                    // Set active project if specified in server config
+                    if (appState.activeProjectId) {
+                        appState.activeProject = appState.projects.find(p => p.id === appState.activeProjectId);
+                    }
+                    
+                    return appState.projects;
+                } else {
+                    console.error('Failed to load projects:', response.message);
+                    appState.projects = [];
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error loading organization projects:', error);
+                appState.projects = [];
+                return [];
+            }
+        }
+
+        // Organization management
+        function updateOrganizationUI() {
+            const hasOrgs = appState.organizations.length > 0;
+            
+            // Hide loading state
+            document.getElementById('org-selector-loading')?.classList.add('hidden');
+            
+            if (hasOrgs) {
+                // Show organization selector
+                document.getElementById('org-selector-wrapper')?.classList.remove('hidden');
+                document.getElementById('no-orgs-state')?.classList.add('hidden');
+                
+                // Update current org name
+                const currentOrgName = document.getElementById('current-org-name');
+                if (currentOrgName && appState.activeOrganization) {
+                    currentOrgName.textContent = appState.activeOrganization.name;
+                }
+                
+                // Populate dropdown
+                updateOrganizationDropdown();
+                
+            } else {
+                // Show no organizations state
+                document.getElementById('org-selector-wrapper')?.classList.add('hidden');
+                document.getElementById('no-orgs-state')?.classList.remove('hidden');
+            }
+        }
+
+        function updateProjectUI() {
+            const hasProjects = appState.projects.length > 0;
+            
+            if (hasProjects && appState.activeOrganization) {
+                // Show project selector
+                document.getElementById('project-selector-wrapper')?.classList.remove('hidden');
+                document.getElementById('no-projects-state')?.classList.add('hidden');
+                
+                // Update current project name
+                const currentProjectName = document.getElementById('current-project-name');
+                if (currentProjectName && appState.activeProject) {
+                    currentProjectName.textContent = appState.activeProject.name;
+                } else if (currentProjectName) {
+                    currentProjectName.textContent = 'Select Project';
+                }
+                
+                // Update dropdown - prioritize active project if set
+                updateProjectDropdown();
+                
+            } else if (appState.activeOrganization) {
+                // Show no projects state
+                document.getElementById('project-selector-wrapper')?.classList.add('hidden');
+                document.getElementById('no-projects-state')?.classList.remove('hidden');
+            } else {
+                // Hide both if no organization
+                document.getElementById('project-selector-wrapper')?.classList.add('hidden');
+                document.getElementById('no-projects-state')?.classList.add('hidden');
+            }
+        }
+
+        function updateOrganizationDropdown() {
+            const dropdown = document.getElementById('org-dropdown-content');
+            if (!dropdown) return;
+            
+            dropdown.innerHTML = appState.organizations.map(org => `
+                <div class="org-item p-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors ${org.id === appState.activeOrganization?.id ? 'bg-indigo-50 border border-indigo-200' : ''}" 
+                     onclick="switchOrganization('${org.id}')">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center flex-1">
+                            <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-building text-indigo-600 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900 text-sm">${org.name}</div>
+                                <div class="text-xs text-gray-500">${org.project_count || 0} projects</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            ${org.id === appState.activeOrganization?.id ? '<i class="fas fa-check text-indigo-600 text-sm"></i>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateProjectDropdown() {
+            const dropdown = document.getElementById('project-dropdown-content');
+            if (!dropdown) return;
+            
+            // Sort projects to show active project first
+            const sortedProjects = [...appState.projects];
+            if (appState.activeProject) {
+                const activeIndex = sortedProjects.findIndex(p => p.id === appState.activeProject.id);
+                if (activeIndex > 0) {
+                    const activeProject = sortedProjects.splice(activeIndex, 1)[0];
+                    sortedProjects.unshift(activeProject);
+                }
+            }
+            
+            dropdown.innerHTML = sortedProjects.map(project => `
+                <div class="project-item p-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-colors ${project.id === appState.activeProject?.id ? 'bg-purple-50 border border-purple-200' : ''}" 
+                     onclick="navigateToProject('${project.id}')">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center flex-1">
+                            <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-project-diagram text-purple-600 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900 text-sm">${project.name}</div>
+                                <div class="text-xs text-gray-500">${project.api_key_count || 0} API keys</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            ${project.id === appState.activeProject?.id ? '<i class="fas fa-check text-purple-600 text-sm"></i>' : ''}
+                            <i class="fas fa-external-link-alt text-gray-400 text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderRecentProjects() {
+            const nav = document.getElementById('recent-projects-nav');
+            if (!nav) return;
+            
+            const recentProjects = appState.projects.slice(0, 3);
+            
+            nav.innerHTML = recentProjects.map(project => {
+                const projectName = project.name || 'Untitled Project';
+                const isActive = project.id === appState.activeProject?.id;
+                return `
+                    <a href="/project/${project.id}" class="tooltip group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive ? 'bg-purple-50 text-purple-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}">
+                        <span class="w-2 h-2 rounded-full ${isActive ? 'bg-purple-500' : 'bg-indigo-500'} mr-3 flex-shrink-0"></span>
+                        <span class="sidebar-text truncate">${projectName}</span>
+                        <span class="tooltip-text">${projectName}</span>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        // Navigation functions
+        function navigateToProject(projectId) {
+            window.location.href = `/project/${projectId}`;
+        }
+
+        async function switchOrganization(orgId) {
+            try {
+                const response = await apiCall('/api/admin/switch-organization', 'POST', { orgId });
+                
+                if (response.success) {
+                    // Update state
+                    appState.activeOrganization = appState.organizations.find(org => org.id === orgId);
+                    appState.activeProject = null; // Clear active project when switching orgs
+                    
+                    // Load projects for new organization
+                    await loadOrganizationProjects(orgId);
+                    
+                    // Update UI
+                    updateOrganizationUI();
+                    updateProjectUI();
+                    renderRecentProjects();
+                    
+                    // Close dropdown
+                    document.getElementById('org-dropdown')?.classList.add('hidden');
+                    
+                    // Trigger organization change event for page-specific handling
+                    window.dispatchEvent(new CustomEvent('organizationChanged', { 
+                        detail: { organization: appState.activeOrganization } 
+                    }));
+                    
+                    showToast('Organization switched successfully!', 'success');
+                } else {
+                    showToast(response.message || 'Failed to switch organization', 'error');
+                }
+            } catch (error) {
+                console.error('Error switching organization:', error);
+                showToast('Failed to switch organization', 'error');
+            }
+        }
+
+        // Organization creation
+        async function handleCreateOrganization(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('orgName').value,
+                description: document.getElementById('orgDescription').value
+            };
+            
+            try {
+                const response = await apiCall('/api/admin/organizations', 'POST', formData);
+                
+                if (response.success) {
+                    closeModal('newOrgModal');
+                    document.getElementById('newOrgForm').reset();
+                    
+                    // Reload data and switch to new organization
+                    await loadUserData();
+                    await switchOrganization(response.data.id);
+                    
+                    showToast('Organization created successfully!', 'success');
+                } else {
+                    showToast(response.message || 'Failed to create organization', 'error');
+                }
+            } catch (error) {
+                console.error('Create organization error:', error);
+                showToast('Failed to create organization', 'error');
+            }
+        }
+
+        // Project creation
+        async function handleCreateProject(e) {
+            e.preventDefault();
+            
+            if (!appState.activeOrganization) {
+                showToast('Please select an organization first', 'error');
+                return;
+            }
+            
+            const formData = {
+                name: document.getElementById('projectName').value,
+                description: document.getElementById('projectDescription').value,
+                organizationId: appState.activeOrganization.id
+            };
+            
+            try {
+                const response = await apiCall('/api/admin/projects', 'POST', formData);
+                
+                if (response.success) {
+                    closeModal('newProjectModal');
+                    document.getElementById('newProjectForm').reset();
+                    
+                    // Reload projects
+                    await loadOrganizationProjects(appState.activeOrganization.id);
+                    
+                    // Update UI
+                    updateProjectUI();
+                    renderRecentProjects();
+                    
+                    // Trigger project creation event for page-specific handling
+                    window.dispatchEvent(new CustomEvent('projectCreated', { 
+                        detail: { project: response.data } 
+                    }));
+                    
+                    showToast('Project created successfully!', 'success');
+                } else {
+                    showToast(response.message || 'Failed to create project', 'error');
+                }
+            } catch (error) {
+                console.error('Create project error:', error);
+                showToast('Failed to create project', 'error');
+            }
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId)?.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId)?.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Initialize layout
+        async function initializeLayout() {
+            console.log('Initializing layout...');
+            
+            // Apply initial sidebar state
+            updateSidebarState();
+            
+            try {
+                // Load user data first
+                const userLoaded = await loadUserData();
+                
+                if (userLoaded) {
+                    // Update organization UI
+                    updateOrganizationUI();
+                    
+                    // Load projects for active organization
+                    if (appState.activeOrganization) {
+                        await loadOrganizationProjects(appState.activeOrganization.id);
+                    }
+                    
+                    // Update project UI and render
+                    updateProjectUI();
+                    renderRecentProjects();
+                    
+                    console.log('Layout initialized successfully');
+                } else {
+                    console.error('Failed to load user data');
+                    showToast('Failed to load user data', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Failed to initialize layout:', error);
+                showToast('Failed to load application', 'error');
+            } finally {
+                appState.isLoading = false;
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Layout DOM loaded, initializing...');
+            
+            // Initialize layout
+            initializeLayout();
+            
+            // Sidebar toggle - desktop
+            document.getElementById('sidebar-toggle').addEventListener('click', toggleSidebar);
+            
+            // Mobile menu toggle
+            document.getElementById('mobile-menu-toggle').addEventListener('click', toggleMobileSidebar);
+            document.getElementById('mobile-backdrop').addEventListener('click', closeMobileSidebar);
+            
+            // Organization selector
+            document.getElementById('org-selector')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('org-dropdown')?.classList.toggle('hidden');
+            });
+
+            // Project selector
+            document.getElementById('project-selector')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('project-dropdown')?.classList.toggle('hidden');
+            });
+
+            // User menu
+            document.getElementById('user-menu-button')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('user-dropdown')?.classList.toggle('hidden');
+            });
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', (e) => {
+                const orgSelector = document.getElementById('org-selector');
+                const orgDropdown = document.getElementById('org-dropdown');
+                const projectSelector = document.getElementById('project-selector');
+                const projectDropdown = document.getElementById('project-dropdown');
+                const userButton = document.getElementById('user-menu-button');
+                const userDropdown = document.getElementById('user-dropdown');
+                
+                if (orgSelector && orgDropdown && !orgSelector.contains(e.target) && !orgDropdown.contains(e.target)) {
+                    orgDropdown.classList.add('hidden');
+                }
+                
+                if (projectSelector && projectDropdown && !projectSelector.contains(e.target) && !projectDropdown.contains(e.target)) {
+                    projectDropdown.classList.add('hidden');
+                }
+                
+                if (userButton && userDropdown && !userButton.contains(e.target) && !userDropdown.contains(e.target)) {
+                    userDropdown.classList.add('hidden');
+                }
+            });
+            
+            // Form submissions
+            document.getElementById('newOrgForm')?.addEventListener('submit', handleCreateOrganization);
+            document.getElementById('newProjectForm')?.addEventListener('submit', handleCreateProject);
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                const orgModal = document.getElementById('newOrgModal');
+                const projectModal = document.getElementById('newProjectModal');
+                
+                if (event.target === orgModal) {
+                    closeModal('newOrgModal');
+                }
+                if (event.target === projectModal) {
+                    closeModal('newProjectModal');
+                }
+            });
+        });
+
+        // Make functions globally available for views
+        window.SnappyLearn = {
+            switchOrganization,
+            navigateToProject,
+            getActiveOrganization: () => appState.activeOrganization,
+            getActiveProject: () => appState.activeProject,
+            getOrganizations: () => appState.organizations,
+            getProjects: () => appState.projects,
+            getUserProfile: () => appState.user,
+            apiCall,
+            showToast,
+            openModal,
+            closeModal,
+            loadOrganizationProjects,
+            updateProjectUI,
+            renderRecentProjects,
+            toggleSidebar,
+            setSidebarState: (collapsed) => {
+                appState.sidebarCollapsed = collapsed;
+                updateSidebarState();
+            }
+        };
+        
+        console.log('Snappy Learn layout initialized');
+    </script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+const { Pool } = require('pg');
+const crypto = require('crypto');
+
+// Create database pool
+const pool = new Pool({
+  connectionString: process.env.SUPABASE_DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: process.env.NODE_ENV === 'production'
+  }
+});
+
+// Helper methods that match the expected interface from your auth router
+const execAsync = async (sql, params = []) => {
+  const client = await pool.connect();
+  try {
+    await client.query(sql, params);
+  } finally {
+    client.release();
+  }
+};
+
+const queryAsync = async (sql, params = []) => {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(sql, params);
+    return result.rows;
+  } finally {
+    client.release();
+  }
+};
+
+// This matches what your auth router expects (db.runAsync)
+const runAsync = async (sql, params = []) => {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(sql, params);
+    return result; // Return the full result object
+  } finally {
+    client.release();
+  }
+};
+
+// This matches what your auth router expects (db.allAsync)
+const allAsync = async (sql, params = []) => {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(sql, params);
+    return result.rows;
+  } finally {
+    client.release();
+  }
+};
+
+const getAsync = async (sql, params = []) => {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(sql, params);
+    return result.rows[0];
+  } finally {
+    client.release();
+  }
+};
+
+// Close pool on process exit
+process.on('SIGTERM', async () => {
+  await pool.end();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  await pool.end();
+  process.exit(0);
+});
+
+// Export database instance with helper methods
+module.exports = {
+  // Main database methods (matching your auth router expectations)
+  execAsync,
+  queryAsync,
+  runAsync,    // Used by auth router
+  allAsync,    // Used by auth router  
+  getAsync,
+  
+  // Legacy aliases for backward compatibility
+  query: queryAsync,
+  run: runAsync,
+  all: allAsync,
+  get: getAsync,
+  exec: execAsync,
+  
+  // Helper methods
+  async generateId(prefix = 'id') {
+    return `${prefix}_${crypto.randomBytes(4).toString('hex')}`;
+  },
+  
+  async generateApiKey(projectId) {
+    const key = `sk_${projectId.slice(-8)}_${crypto.randomBytes(32).toString('hex')}`;
+    return {
+      key,
+      hash: crypto.createHash('sha256').update(key).digest('hex'),
+      prefix: `sk_${projectId.slice(-8)}`
+    };
+  },
+  
+  async end() {
+    await pool.end();
+  },
+
+  // Direct pool access if needed
+  pool
+};

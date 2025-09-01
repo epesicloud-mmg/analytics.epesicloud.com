@@ -1,0 +1,1041 @@
+<!-- Complete Dashboards View Page -->
+
+<style>
+    /* Dashboard-specific styles */
+    .dashboard-card {
+        transition: all 0.2s ease;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .project-badge {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 6px;
+    }
+    
+    .project-badge-blue { background-color: #3b82f6; }
+    .project-badge-green { background-color: #10b981; }
+    .project-badge-purple { background-color: #8b5cf6; }
+    .project-badge-orange { background-color: #f59e0b; }
+    .project-badge-pink { background-color: #ec4899; }
+    .project-badge-indigo { background-color: #6366f1; }
+    .project-badge-red { background-color: #ef4444; }
+    .project-badge-yellow { background-color: #eab308; }
+    .project-badge-teal { background-color: #14b8a6; }
+    .project-badge-gray { background-color: #6b7280; }
+    
+    /* Grid and List views */
+    .dashboards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .dashboards-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    /* Dashboard Item */
+    .dashboard-item {
+        transition: all 0.2s ease-in-out;
+        position: relative;
+    }
+    
+    .dashboard-item:hover {
+        transform: translateY(-2px);
+    }
+    
+    .dashboard-item-menu {
+        visibility: hidden;
+        opacity: 0;
+        transition: visibility 0s, opacity 0.2s ease-in-out;
+    }
+    
+    .dashboard-item:hover .dashboard-item-menu {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* View toggle */
+    .view-active {
+        background-color: #e0e7ff;
+        color: #4338ca;
+    }
+
+    .view-inactive {
+        background-color: white;
+        color: #6b7280;
+    }
+
+    /* Dashboard preview gradients */
+    .dashboard-preview-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .dashboard-preview-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .dashboard-preview-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .dashboard-preview-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .dashboard-preview-5 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+    .dashboard-preview-6 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+    .dashboard-preview-7 { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
+    .dashboard-preview-8 { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+</style>
+
+<!-- Loading State for entire page -->
+<div id="page-loading" class="flex justify-center items-center h-64">
+    <div class="flex items-center space-x-2">
+        <i class="fas fa-spinner animate-spin text-green-600 text-xl"></i>
+        <span class="text-gray-600">Loading dashboards...</span>
+    </div>
+</div>
+
+<!-- Error State -->
+<div id="error-state" class="hidden text-center py-12">
+    <div class="h-24 w-24 bg-red-100 mx-auto rounded-full flex items-center justify-center mb-4">
+        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+    </div>
+    <h3 class="text-lg font-medium text-gray-900 mb-2">Failed to Load Dashboards</h3>
+    <p class="text-gray-500 mb-4">There was an error loading your dashboards. Please try again.</p>
+    <button onclick="DashboardsView.retry()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+        <i class="fas fa-refresh mr-2"></i>
+        Retry
+    </button>
+</div>
+
+<!-- Main Content Container -->
+<div id="main-content" class="hidden">
+    <!-- Dashboards Header -->
+    <div class="mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Dashboards</h1>
+                <p id="dashboards-subtitle" class="text-sm text-gray-500 mt-1">Manage your analytics dashboards</p>
+            </div>
+            
+            <div class="mt-4 md:mt-0 flex flex-wrap items-center space-x-3">
+                <!-- View Toggle -->
+                <div class="flex rounded-md shadow-sm">
+                    <button id="grid-view" class="view-active px-4 py-2 text-sm font-medium border border-gray-200 rounded-l-md focus:z-10 focus:ring-1 focus:ring-green-500 focus:border-green-500">
+                        <i class="fas fa-th-large mr-1"></i> Grid
+                    </button>
+                    <button id="list-view" class="view-inactive px-4 py-2 text-sm font-medium border border-gray-200 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-1 focus:ring-green-500 focus:border-green-500">
+                        <i class="fas fa-list mr-1"></i> List
+                    </button>
+                </div>
+                
+                <!-- Sort Dropdown -->
+                <div class="relative">
+                    <select id="sort-dashboards" class="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <option value="created_at_desc">Newest First</option>
+                        <option value="created_at_asc">Oldest First</option>
+                        <option value="title_asc">Name A-Z</option>
+                        <option value="title_desc">Name Z-A</option>
+                        <option value="updated_at_desc">Recently Updated</option>
+                        <option value="project_name_asc">Project A-Z</option>
+                    </select>
+                </div>
+                
+                <!-- New Dashboard -->
+                <button onclick="DashboardsView.createDashboard()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <i class="fas fa-plus mr-2"></i>
+                    New Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
+        <div class="flex flex-wrap items-center justify-between">
+            <div class="flex flex-wrap items-center space-x-4">
+                <!-- Search Filter -->
+                <div class="relative w-64">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400 text-sm"></i>
+                    </div>
+                    <input 
+                        id="dashboard-search"
+                        type="text" 
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-md focus:ring-green-500 focus:border-green-500 text-sm text-gray-600 placeholder-gray-400" 
+                        placeholder="Search dashboards..."
+                    >
+                </div>
+                
+                <!-- Project Filter -->
+                <div class="relative">
+                    <select id="project-filter" class="px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:ring-green-500 focus:border-green-500">
+                        <option value="all">All Projects</option>
+                        <!-- Projects will be populated here -->
+                    </select>
+                </div>
+                
+                <!-- Status Filter -->
+                <div class="relative">
+                    <select id="status-filter" class="px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:ring-green-500 focus:border-green-500">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="draft">Draft</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 text-sm text-gray-500">
+                <span id="dashboards-count">0 dashboards</span>
+                <span>•</span>
+                <button id="clear-filters" class="text-green-600 hover:text-green-800 font-medium">Clear filters</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Dashboards -->
+    <div id="loading-dashboards" class="hidden flex justify-center items-center p-8">
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-spinner animate-spin text-green-600 text-xl"></i>
+            <span class="text-gray-600">Loading dashboards...</span>
+        </div>
+    </div>
+    
+    <!-- Dashboards Container -->
+    <div id="dashboards-container" class="dashboards-grid">
+        <!-- Dashboards will be populated here -->
+    </div>
+    
+    <!-- Empty State -->
+    <div id="dashboards-empty" class="hidden text-center py-12">
+        <div class="h-24 w-24 bg-gray-100 mx-auto rounded-full flex items-center justify-center mb-4">
+            <i class="fas fa-chart-line text-gray-400 text-2xl"></i>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No dashboards found</h3>
+        <p class="text-gray-500 mb-4">Create your first dashboard to start analyzing your data</p>
+        <button onclick="DashboardsView.createDashboard()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            <i class="fas fa-plus mr-2"></i>
+            Create Dashboard
+        </button>
+    </div>
+</div>
+
+<!-- Dashboard Menu Dropdown (for actions) -->
+<div id="dashboard-menu" class="hidden absolute z-10 mt-1 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+    <div class="py-1">
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-action="view">
+            <i class="fas fa-eye mr-2"></i> View Dashboard
+        </a>
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-action="edit">
+            <i class="fas fa-edit mr-2"></i> Edit Dashboard
+        </a>
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-action="duplicate">
+            <i class="fas fa-copy mr-2"></i> Duplicate
+        </a>
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-action="export">
+            <i class="fas fa-download mr-2"></i> Export
+        </a>
+        <hr class="my-1">
+        <a href="#" class="block px-4 py-2 text-sm text-red-700 hover:bg-red-50" data-action="delete">
+            <i class="fas fa-trash mr-2"></i> Delete Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Create Dashboard Modal -->
+<div id="create-dashboard-modal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="text-lg font-medium text-gray-900">Create New Dashboard</h3>
+            <button id="close-dashboard-modal" class="p-1 rounded-md hover:bg-gray-100 focus:outline-none">
+                <i class="fas fa-times text-gray-500"></i>
+            </button>
+        </div>
+        <div class="mt-4">
+            <form id="create-dashboard-form">
+                <div class="mb-4">
+                    <label for="dashboard-project" class="block text-sm font-medium text-gray-700 mb-1">Project <span class="text-red-500">*</span></label>
+                    <select 
+                        id="dashboard-project" 
+                        name="project_id"
+                        required
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    >
+                        <option value="">Select a project...</option>
+                        <!-- Projects will be populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="dashboard-title" class="block text-sm font-medium text-gray-700 mb-1">Dashboard Name <span class="text-red-500">*</span></label>
+                    <input 
+                        type="text" 
+                        id="dashboard-title" 
+                        name="title"
+                        required
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" 
+                        placeholder="Enter dashboard name"
+                    >
+                </div>
+                <div class="mb-4">
+                    <label for="dashboard-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea 
+                        id="dashboard-description" 
+                        name="description"
+                        rows="3" 
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" 
+                        placeholder="Enter dashboard description"
+                    ></textarea>
+                </div>
+                <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
+                    <button type="button" id="cancel-dashboard-create" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Cancel
+                    </button>
+                    <button type="submit" id="create-dashboard-submit" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <span class="btn-text">Create Dashboard</span>
+                        <i class="fas fa-spinner animate-spin ml-2 hidden" id="dashboard-spinner"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboards View JavaScript -->
+<script>
+(function() {
+    'use strict';
+    
+    // Dashboards view state
+    const dashboardsState = {
+        dashboards: [],
+        projects: [],
+        filteredDashboards: [],
+        currentView: 'grid',
+        currentSort: 'created_at_desc',
+        searchTerm: '',
+        projectFilter: 'all',
+        statusFilter: 'all',
+        isInitialized: false,
+        activeOrganization: null
+    };
+    
+    // Color mapping for project badges
+    const projectColorMap = {
+        purple: 'project-badge-purple',
+        blue: 'project-badge-blue', 
+        green: 'project-badge-green',
+        yellow: 'project-badge-yellow',
+        red: 'project-badge-red',
+        pink: 'project-badge-pink',
+        indigo: 'project-badge-indigo',
+        teal: 'project-badge-teal',
+        orange: 'project-badge-orange',
+        gray: 'project-badge-gray'
+    };
+
+    // Utility functions
+    function formatDate(dateString) {
+        if (!dateString) return 'Unknown';
+        
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) return '1 day ago';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+        return date.toLocaleDateString();
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function getPreviewClass(index) {
+        return `dashboard-preview-${(index % 8) + 1}`;
+    }
+
+    // API functions
+    async function fetchDashboards(orgId) {
+        try {
+            console.log('Fetching dashboards for organization:', orgId);
+            const response = await window.SnappyLearn.apiCall(`/api/organizations/${orgId}/dashboards`);
+            
+            if (response && response.success && Array.isArray(response.data)) {
+                // Fetch block counts for each dashboard
+                const dashboardsWithBlocks = await Promise.all(
+                    response.data.map(async (dashboard) => {
+                        try {
+                            // Fetch individual dashboard details to get blocks
+                            const detailResponse = await window.SnappyLearn.apiCall(`/api/dashboards/${dashboard.id}`);
+                            if (detailResponse && detailResponse.success && detailResponse.data && detailResponse.data.blocks) {
+                                dashboard.block_count = detailResponse.data.blocks.length;
+                            } else {
+                                dashboard.block_count = 0;
+                            }
+                        } catch (error) {
+                            console.warn(`Failed to fetch blocks for dashboard ${dashboard.id}:`, error);
+                            dashboard.block_count = 0;
+                        }
+                        return dashboard;
+                    })
+                );
+                
+                return dashboardsWithBlocks;
+            } else {
+                console.warn('Invalid dashboards response, returning empty array');
+                return [];
+            }
+        } catch (error) {
+            console.error('Error fetching dashboards:', error);
+            return [];
+        }
+    }
+
+    async function fetchProjects(orgId) {
+        try {
+            console.log('Fetching projects for organization:', orgId);
+            
+            // Try SnappyLearn function first
+            if (window.SnappyLearn && typeof window.SnappyLearn.loadOrganizationProjects === 'function') {
+                const projects = await window.SnappyLearn.loadOrganizationProjects(orgId);
+                return projects || [];
+            } else {
+                // Fall back to direct API call
+                const response = await window.SnappyLearn.apiCall(`/api/admin/organizations/${orgId}/projects`);
+                
+                if (response && response.success && Array.isArray(response.data)) {
+                    return response.data;
+                } else {
+                    console.warn('Invalid projects response, returning empty array');
+                    return [];
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching projects:', error);
+            return [];
+        }
+    }
+
+    async function createDashboard(projectId, dashboardData) {
+        try {
+            console.log('Creating dashboard for project:', projectId, 'with data:', dashboardData);
+            const response = await window.SnappyLearn.apiCall(`/api/projects/${projectId}/dashboards`, 'POST', dashboardData);
+            
+            if (response && response.success && response.data) {
+                return response.data;
+            } else {
+                throw new Error(response?.message || 'Invalid response structure');
+            }
+        } catch (error) {
+            console.error('Error creating dashboard:', error);
+            throw error;
+        }
+    }
+
+    // Render functions
+    function renderDashboardCard(dashboard, index) {
+        const project = dashboardsState.projects.find(p => p.id === dashboard.project_id) || {};
+        const projectColorClass = projectColorMap[project.color] || 'project-badge-indigo';
+        const previewClass = getPreviewClass(index);
+        
+        return `
+            <div class="dashboard-item dashboard-card bg-white rounded-lg shadow-sm overflow-hidden border border-transparent hover:border-green-200" data-dashboard-id="${dashboard.id}">
+                <a href="/dashboards/${dashboard.id}" class="block">
+                    <!-- Dashboard Preview -->
+                    <div class="h-40 ${previewClass} border-b border-gray-200 overflow-hidden flex items-center justify-center">
+                        <div class="text-center text-white">
+                            <i class="fas fa-chart-line text-4xl mb-2 opacity-80"></i>
+                            <p class="text-sm font-medium opacity-90">Dashboard Preview</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Dashboard Info -->
+                    <div class="p-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <h3 class="text-md font-semibold text-gray-800 line-clamp-1">${escapeHtml(dashboard.title || 'Untitled Dashboard')}</h3>
+                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                        </div>
+                        
+                        <!-- Project Info -->
+                        <div class="flex items-center mb-2">
+                            <span class="project-badge ${projectColorClass}"></span>
+                            <span class="text-xs text-gray-500">${escapeHtml(project.name || 'Unknown Project')}</span>
+                        </div>
+                        
+                        <p class="text-sm text-gray-500 mb-3 line-clamp-2">${escapeHtml(dashboard.description || 'No description provided')}</p>
+                        
+                        <div class="flex items-center justify-between text-xs text-gray-500">
+                            <span>Updated ${formatDate(dashboard.updated_at)}</span>
+                            <div class="flex items-center">
+                                <i class="fas fa-cube mr-1"></i>
+                                <span>${parseInt(dashboard.block_count) || 0} block${(parseInt(dashboard.block_count) || 0) !== 1 ? 's' : ''}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                
+                <!-- Dashboard Menu -->
+                <div class="dashboard-item-menu absolute top-2 right-2">
+                    <button class="p-1.5 rounded-full bg-white shadow-sm hover:bg-gray-50 focus:outline-none" onclick="DashboardsView.showDashboardMenu(event, '${dashboard.id}')">
+                        <i class="fas fa-ellipsis-v text-gray-500"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderDashboardList(dashboard, index) {
+        const project = dashboardsState.projects.find(p => p.id === dashboard.project_id) || {};
+        const projectColorClass = projectColorMap[project.color] || 'project-badge-indigo';
+        
+        return `
+            <div class="dashboard-item bg-white rounded-lg shadow-sm border border-transparent hover:border-green-200 p-4" data-dashboard-id="${dashboard.id}">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4 flex-1">
+                        <!-- Dashboard Icon & Info -->
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-chart-line text-green-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-800">${escapeHtml(dashboard.title || 'Untitled Dashboard')}</h3>
+                                <div class="flex items-center">
+                                    <span class="project-badge ${projectColorClass}"></span>
+                                    <span class="text-xs text-gray-500">${escapeHtml(project.name || 'Unknown Project')}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Dashboard Stats -->
+                        <div class="hidden md:flex items-center space-x-6">
+                            <div class="text-center">
+                                <div class="text-sm font-semibold text-green-600">${parseInt(dashboard.block_count) || 0}</div>
+                                <div class="text-xs text-gray-500">Blocks</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-sm font-semibold text-purple-600">0</div>
+                                <div class="text-xs text-gray-500">Views</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xs text-gray-500">${formatDate(dashboard.updated_at)}</div>
+                                <div class="text-xs text-gray-400">Updated</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            Active
+                        </span>
+                        <a href="/dashboards/${dashboard.id}" class="px-3 py-1 text-xs font-medium text-green-600 hover:text-green-800">
+                            View
+                        </a>
+                        <button class="p-1 rounded hover:bg-gray-100 focus:outline-none" onclick="DashboardsView.showDashboardMenu(event, '${dashboard.id}')">
+                            <i class="fas fa-ellipsis-v text-gray-500 text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderCreateDashboardCard() {
+        return `
+            <div class="dashboard-item bg-white rounded-lg shadow-sm border border-dashed border-gray-300 flex items-center justify-center hover:border-green-300 cursor-pointer" onclick="DashboardsView.createDashboard()">
+                <div class="text-center p-8">
+                    <div class="h-12 w-12 bg-green-100 mx-auto rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-plus text-green-600 text-lg"></i>
+                    </div>
+                    <h3 class="text-md font-medium text-gray-800 mb-1">Create New Dashboard</h3>
+                    <p class="text-sm text-gray-500">Start from scratch or use a template</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderDashboards(dashboardList = dashboardsState.filteredDashboards) {
+        const container = document.getElementById('dashboards-container');
+        const emptyState = document.getElementById('dashboards-empty');
+        const countElement = document.getElementById('dashboards-count');
+        
+        console.log('Rendering dashboards:', dashboardList ? dashboardList.length : 0);
+        
+        // Update count
+        if (countElement) {
+            const count = dashboardList ? dashboardList.length : 0;
+            countElement.textContent = `${count} dashboard${count !== 1 ? 's' : ''}`;
+        }
+        
+        if (!dashboardList || dashboardList.length === 0) {
+            container.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        
+        emptyState.classList.add('hidden');
+        
+        const renderFunction = dashboardsState.currentView === 'grid' ? renderDashboardCard : renderDashboardList;
+        const dashboardItems = dashboardList.map((dashboard, index) => renderFunction(dashboard, index)).join('');
+        const createCard = dashboardsState.currentView === 'grid' ? renderCreateDashboardCard() : '';
+        
+        container.innerHTML = createCard + dashboardItems;
+        
+        // Update container class
+        container.className = dashboardsState.currentView === 'grid' ? 'dashboards-grid' : 'dashboards-list';
+    }
+
+    function populateProjectFilter() {
+        const projectFilter = document.getElementById('project-filter');
+        if (!projectFilter) return;
+        
+        // Clear existing options except the first one
+        projectFilter.innerHTML = '<option value="all">All Projects</option>';
+        
+        // Add projects to filter
+        dashboardsState.projects.forEach(project => {
+            const option = document.createElement('option');
+            option.value = project.id;
+            option.textContent = project.name || 'Untitled Project';
+            projectFilter.appendChild(option);
+        });
+    }
+
+    function populateProjectSelector() {
+        const projectSelect = document.getElementById('dashboard-project');
+        if (!projectSelect) return;
+        
+        // Clear existing options except the first one
+        projectSelect.innerHTML = '<option value="">Select a project...</option>';
+        
+        // Add projects to selector
+        dashboardsState.projects.forEach(project => {
+            const option = document.createElement('option');
+            option.value = project.id;
+            option.textContent = project.name || 'Untitled Project';
+            projectSelect.appendChild(option);
+        });
+    }
+
+    // Filter and sort functions
+    function filterDashboards() {
+        let filtered = [...dashboardsState.dashboards];
+        
+        // Apply search filter
+        if (dashboardsState.searchTerm) {
+            const term = dashboardsState.searchTerm.toLowerCase();
+            filtered = filtered.filter(dashboard => {
+                const project = dashboardsState.projects.find(p => p.id === dashboard.project_id) || {};
+                return (dashboard.title && dashboard.title.toLowerCase().includes(term)) ||
+                       (dashboard.description && dashboard.description.toLowerCase().includes(term)) ||
+                       (project.name && project.name.toLowerCase().includes(term));
+            });
+        }
+        
+        // Apply project filter
+        if (dashboardsState.projectFilter !== 'all') {
+            filtered = filtered.filter(dashboard => dashboard.project_id === dashboardsState.projectFilter);
+        }
+        
+        // Apply status filter
+        if (dashboardsState.statusFilter !== 'all') {
+            // For now, all dashboards are active
+            if (dashboardsState.statusFilter === 'draft') {
+                filtered = [];
+            }
+        }
+        
+        dashboardsState.filteredDashboards = filtered;
+        sortDashboards();
+    }
+
+    function sortDashboards() {
+        const sorted = [...dashboardsState.filteredDashboards];
+        
+        switch(dashboardsState.currentSort) {
+            case 'created_at_desc':
+                sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+                break;
+            case 'created_at_asc':
+                sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+                break;
+            case 'updated_at_desc':
+                sorted.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+                break;
+            case 'title_asc':
+                sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+                break;
+            case 'title_desc':
+                sorted.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+                break;
+            case 'project_name_asc':
+                sorted.sort((a, b) => {
+                    const projectA = dashboardsState.projects.find(p => p.id === a.project_id) || {};
+                    const projectB = dashboardsState.projects.find(p => p.id === b.project_id) || {};
+                    return (projectA.name || '').localeCompare(projectB.name || '');
+                });
+                break;
+        }
+        
+        dashboardsState.filteredDashboards = sorted;
+        renderDashboards();
+    }
+
+    // Event handlers
+    function handleViewToggle(view) {
+        dashboardsState.currentView = view;
+        
+        // Update button states
+        document.getElementById('grid-view').className = view === 'grid' ? 
+            'view-active px-4 py-2 text-sm font-medium border border-gray-200 rounded-l-md focus:z-10 focus:ring-1 focus:ring-green-500 focus:border-green-500' :
+            'view-inactive px-4 py-2 text-sm font-medium border border-gray-200 rounded-l-md hover:bg-gray-50 focus:z-10 focus:ring-1 focus:ring-green-500 focus:border-green-500';
+            
+        document.getElementById('list-view').className = view === 'list' ? 
+            'view-active px-4 py-2 text-sm font-medium border border-gray-200 rounded-r-md focus:z-10 focus:ring-1 focus:ring-green-500 focus:border-green-500' :
+            'view-inactive px-4 py-2 text-sm font-medium border border-gray-200 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-1 focus:ring-green-500 focus:border-green-500';
+        
+        renderDashboards();
+    }
+
+    function handleSearch() {
+        dashboardsState.searchTerm = document.getElementById('dashboard-search').value;
+        filterDashboards();
+    }
+
+    function handleSort() {
+        dashboardsState.currentSort = document.getElementById('sort-dashboards').value;
+        sortDashboards();
+    }
+
+    function handleProjectFilter() {
+        dashboardsState.projectFilter = document.getElementById('project-filter').value;
+        filterDashboards();
+    }
+
+    function handleStatusFilter() {
+        dashboardsState.statusFilter = document.getElementById('status-filter').value;
+        filterDashboards();
+    }
+
+    function clearFilters() {
+        document.getElementById('dashboard-search').value = '';
+        document.getElementById('project-filter').value = 'all';
+        document.getElementById('status-filter').value = 'all';
+        document.getElementById('sort-dashboards').value = 'created_at_desc';
+        
+        dashboardsState.searchTerm = '';
+        dashboardsState.projectFilter = 'all';
+        dashboardsState.statusFilter = 'all';
+        dashboardsState.currentSort = 'created_at_desc';
+        
+        filterDashboards();
+    }
+
+    // Modal functions
+    function openCreateDashboardModal() {
+        populateProjectSelector();
+        
+        const modal = document.getElementById('create-dashboard-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            
+            const projectSelect = document.getElementById('dashboard-project');
+            if (projectSelect) {
+                projectSelect.focus();
+            }
+        }
+    }
+
+    function closeCreateDashboardModal() {
+        const modal = document.getElementById('create-dashboard-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+        
+        resetCreateDashboardForm();
+    }
+
+    function resetCreateDashboardForm() {
+        const form = document.getElementById('create-dashboard-form');
+        if (form) {
+            form.reset();
+        }
+        
+        const submitBtn = document.getElementById('create-dashboard-submit');
+        const btnText = submitBtn?.querySelector('.btn-text');
+        const spinner = document.getElementById('dashboard-spinner');
+        
+        if (submitBtn) submitBtn.disabled = false;
+        if (btnText) btnText.textContent = 'Create Dashboard';
+        if (spinner) spinner.classList.add('hidden');
+    }
+
+    async function handleCreateDashboard(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        const submitBtn = document.getElementById('create-dashboard-submit');
+        const btnText = submitBtn?.querySelector('.btn-text');
+        const spinner = document.getElementById('dashboard-spinner');
+        
+        const projectId = formData.get('project_id');
+        const title = formData.get('title');
+        const description = formData.get('description');
+        
+        if (!projectId) {
+            if (window.SnappyLearn && typeof window.SnappyLearn.showToast === 'function') {
+                window.SnappyLearn.showToast('Please select a project', 'error');
+            }
+            return;
+        }
+        
+        if (!title.trim()) {
+            if (window.SnappyLearn && typeof window.SnappyLearn.showToast === 'function') {
+                window.SnappyLearn.showToast('Please enter a dashboard name', 'error');
+            }
+            return;
+        }
+        
+        // Show loading state
+        if (submitBtn) submitBtn.disabled = true;
+        if (btnText) btnText.textContent = 'Creating...';
+        if (spinner) spinner.classList.remove('hidden');
+        
+        try {
+            const dashboardData = {
+                title: title.trim(),
+                description: description.trim() || ''
+            };
+            
+            const newDashboard = await createDashboard(projectId, dashboardData);
+            
+            // Add project name to dashboard for display
+            const project = dashboardsState.projects.find(p => p.id === projectId);
+            if (project) {
+                newDashboard.project_name = project.name;
+                newDashboard.project_id = projectId;
+            }
+            
+            // Add to dashboards list
+            dashboardsState.dashboards.unshift(newDashboard);
+            filterDashboards();
+            
+            closeCreateDashboardModal();
+            
+            if (window.SnappyLearn && typeof window.SnappyLearn.showToast === 'function') {
+                window.SnappyLearn.showToast('Dashboard created successfully!', 'success');
+            }
+            
+            // Redirect to dashboard design view
+            setTimeout(() => {
+                window.location.href = `/dashboards/${newDashboard.id}`;
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Failed to create dashboard:', error);
+            
+            if (window.SnappyLearn && typeof window.SnappyLearn.showToast === 'function') {
+                window.SnappyLearn.showToast(error.message || 'Failed to create dashboard', 'error');
+            }
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+            if (btnText) btnText.textContent = 'Create Dashboard';
+            if (spinner) spinner.classList.add('hidden');
+        }
+    }
+
+    // Dashboards view object
+    window.DashboardsView = {
+        async init() {
+            console.log('Initializing dashboards view...');
+            
+            if (dashboardsState.isInitialized) {
+                console.log('Dashboards view already initialized');
+                return;
+            }
+            
+            try {
+                // Wait for layout to be ready
+                let attempts = 0;
+                while (!window.SnappyLearn && attempts < 30) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (!window.SnappyLearn) {
+                    throw new Error('SnappyLearn not available');
+                }
+                
+                console.log('SnappyLearn is ready');
+                
+                // Get active organization with retries
+                let orgAttempts = 0;
+                let activeOrg = null;
+                const maxOrgRetries = 10;
+                
+                while (orgAttempts < maxOrgRetries && !activeOrg) {
+                    try {
+                        if (typeof window.SnappyLearn.getActiveOrganization === 'function') {
+                            activeOrg = window.SnappyLearn.getActiveOrganization();
+                        }
+                    } catch (error) {
+                        console.warn('Error getting active organization:', error);
+                    }
+                    
+                    if (!activeOrg) {
+                        console.log(`Waiting for organization... attempt ${orgAttempts + 1}/${maxOrgRetries}`);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                    orgAttempts++;
+                }
+                
+                if (!activeOrg) {
+                    throw new Error('No active organization found after retries');
+                }
+                
+                dashboardsState.activeOrganization = activeOrg;
+                console.log('Active organization set:', activeOrg);
+                
+                // Update subtitle
+                const subtitle = document.getElementById('dashboards-subtitle');
+                if (subtitle) {
+                    subtitle.textContent = `Manage dashboards in ${activeOrg.name}`;
+                }
+                
+                // Fetch projects and dashboards in parallel
+                console.log('Fetching projects and dashboards...');
+                const [projects, dashboards] = await Promise.all([
+                    fetchProjects(activeOrg.id),
+                    fetchDashboards(activeOrg.id)
+                ]);
+                
+                dashboardsState.projects = projects;
+                dashboardsState.dashboards = dashboards;
+                dashboardsState.filteredDashboards = [...dashboards];
+                
+                console.log('Data loaded:', { projects: projects.length, dashboards: dashboards.length });
+                
+                // Populate filters and render
+                populateProjectFilter();
+                renderDashboards();
+                
+                // Show main content
+                document.getElementById('page-loading').classList.add('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                
+                dashboardsState.isInitialized = true;
+                console.log('Dashboards view initialized successfully');
+                
+            } catch (error) {
+                console.error('Failed to initialize dashboards view:', error);
+                
+                if (window.SnappyLearn && typeof window.SnappyLearn.showToast === 'function') {
+                    window.SnappyLearn.showToast(`Failed to load dashboards: ${error.message}`, 'error');
+                } else {
+                    console.error('Failed to load dashboards:', error.message);
+                }
+                
+                // Show error state
+                document.getElementById('page-loading').classList.add('hidden');
+                document.getElementById('error-state').classList.remove('hidden');
+            }
+        },
+        
+        retry() {
+            document.getElementById('error-state').classList.add('hidden');
+            document.getElementById('page-loading').classList.remove('hidden');
+            dashboardsState.isInitialized = false;
+            DashboardsView.init();
+        },
+        
+        createDashboard() {
+            if (dashboardsState.projects.length === 0) {
+                if (window.SnappyLearn && typeof window.SnappyLearn.showToast === 'function') {
+                    window.SnappyLearn.showToast('Create a project first before creating dashboards', 'info');
+                }
+                return;
+            }
+            
+            openCreateDashboardModal();
+        },
+        
+        showDashboardMenu(event, dashboardId) {
+            event.stopPropagation();
+            console.log('Show menu for dashboard:', dashboardId);
+            // Dashboard menu functionality coming soon
+            if (window.SnappyLearn && typeof window.SnappyLearn.showToast === 'function') {
+                window.SnappyLearn.showToast('Dashboard menu coming soon', 'info');
+            }
+        }
+    };
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Dashboards view DOM loaded');
+        
+        // Initialize with a delay to ensure layout is ready
+        setTimeout(() => {
+            DashboardsView.init();
+        }, 1000);
+        
+        // View toggle
+        document.getElementById('grid-view')?.addEventListener('click', () => handleViewToggle('grid'));
+        document.getElementById('list-view')?.addEventListener('click', () => handleViewToggle('list'));
+        
+        // Search and filters
+        document.getElementById('dashboard-search')?.addEventListener('input', handleSearch);
+        document.getElementById('sort-dashboards')?.addEventListener('change', handleSort);
+        document.getElementById('project-filter')?.addEventListener('change', handleProjectFilter);
+        document.getElementById('status-filter')?.addEventListener('change', handleStatusFilter);
+        document.getElementById('clear-filters')?.addEventListener('click', clearFilters);
+        
+        // Modal controls
+        document.getElementById('close-dashboard-modal')?.addEventListener('click', closeCreateDashboardModal);
+        document.getElementById('cancel-dashboard-create')?.addEventListener('click', closeCreateDashboardModal);
+        document.getElementById('create-dashboard-form')?.addEventListener('submit', handleCreateDashboard);
+        
+        // Close modal when clicking outside
+        const modal = document.getElementById('create-dashboard-modal');
+        if (modal) {
+            modal.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    closeCreateDashboardModal();
+                }
+            });
+        }
+        
+        // Organization change handling
+        window.addEventListener('organizationChanged', function(event) {
+            console.log('Organization changed in dashboards view:', event.detail?.organization);
+            dashboardsState.isInitialized = false;
+            dashboardsState.dashboards = [];
+            dashboardsState.projects = [];
+            dashboardsState.filteredDashboards = [];
+            
+            document.getElementById('main-content').classList.add('hidden');
+            document.getElementById('page-loading').classList.remove('hidden');
+            
+            setTimeout(() => {
+                DashboardsView.init();
+            }, 500);
+        });
+        
+        // Dashboard creation handling
+        window.addEventListener('dashboardCreated', function(event) {
+            console.log('Dashboard created:', event.detail?.dashboard);
+            const newDashboard = event.detail?.dashboard;
+            
+            if (newDashboard) {
+                dashboardsState.dashboards.unshift(newDashboard);
+                filterDashboards();
+            }
+        });
+    });
+
+    console.log('Dashboards view script loaded');
+})();
+</script>

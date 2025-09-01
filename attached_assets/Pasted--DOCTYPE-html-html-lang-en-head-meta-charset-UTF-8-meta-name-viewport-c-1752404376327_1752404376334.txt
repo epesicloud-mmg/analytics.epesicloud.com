@@ -1,0 +1,1175 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Live View - Snappy Learn</title>
+    <!-- Tailwind CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Highcharts -->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --secondary: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --surface: #ffffff;
+            --surface-alt: #f1f5f9;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Fluid container that uses full width */
+        .fluid-container {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Header with minimal padding */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Dashboard grid with minimal gaps */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1rem;
+            padding: 1rem;
+            width: 100%;
+        }
+        
+        /* Block sizing */
+        .block-1 { grid-column: span 1; }
+        .block-2 { grid-column: span 2; }
+        .block-3 { grid-column: span 3; }
+        .block-4 { grid-column: span 4; }
+        .block-5 { grid-column: span 5; }
+        .block-6 { grid-column: span 6; }
+        .block-7 { grid-column: span 7; }
+        .block-8 { grid-column: span 8; }
+        .block-9 { grid-column: span 9; }
+        .block-10 { grid-column: span 10; }
+        .block-11 { grid-column: span 11; }
+        .block-12 { grid-column: span 12; }
+        
+        /* Clean dashboard blocks with minimal padding */
+        .dashboard-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        .dashboard-block:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: #cbd5e1;
+        }
+        
+        /* Chart containers with maximum space usage */
+        .chart-container {
+            width: 100%;
+            min-height: 300px;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .chart-container.large {
+            min-height: 400px;
+        }
+        
+        .chart-container.small {
+            min-height: 200px;
+        }
+        
+        /* Text content with proper spacing */
+        .text-content {
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .text-content p {
+            margin: 0 0 1rem 0;
+        }
+        
+        .text-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Block headers with minimal space */
+        .block-header {
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .block-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        
+        /* Refresh indicator */
+        .refresh-indicator {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .refresh-indicator.refreshing {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        /* Floating action button */
+        .fab {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 56px;
+            height: 56px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+        
+        .fab:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+        
+        /* Modal styling */
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Button styles */
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--surface-alt);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+        
+        /* Loading states */
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1100;
+            color: var(--text-primary);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid #10b981;
+        }
+
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast.info {
+            border-left: 4px solid var(--primary);
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 1rem 0;
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .footer-content {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+                padding: 0.75rem;
+            }
+            
+            .block-1, .block-2, .block-3, .block-4, .block-5, .block-6,
+            .block-7, .block-8, .block-9, .block-10, .block-11, .block-12 {
+                grid-column: span 1;
+            }
+            
+            .header {
+                padding: 0.75rem 1rem;
+            }
+
+            .dashboard-block {
+                padding: 0.75rem;
+            }
+
+            .chart-container {
+                min-height: 250px;
+            }
+
+            .chart-container.large {
+                min-height: 300px;
+            }
+
+            .chart-container.small {
+                min-height: 180px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-grid {
+                padding: 0.5rem;
+                gap: 0.5rem;
+            }
+
+            .header {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .dashboard-block {
+                padding: 0.5rem;
+                border-radius: 6px;
+            }
+        }
+        
+        /* Focus states for accessibility */
+        .focus\:ring:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            border-color: var(--primary);
+        }
+        
+        /* Smooth scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--surface-alt);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            .dashboard-block {
+                border-width: 2px;
+            }
+            
+            .block-header {
+                border-bottom-width: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div>
+                    <h1 id="dashboard-title" class="text-xl font-semibold text-gray-900">Dashboard</h1>
+                    <p id="dashboard-description" class="text-sm text-gray-600 mt-1 hidden"></p>
+                    <div id="last-updated" class="text-xs text-gray-500 mt-1 hidden flex items-center">
+                        <i class="fas fa-clock mr-1"></i>
+                        Last updated: <span id="update-time" class="ml-1"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <!-- Auto-refresh Timer -->
+                <div id="refresh-indicator" class="flex items-center space-x-2 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-md border">
+                    <i class="fas fa-sync-alt" id="refresh-icon"></i>
+                    <span id="refresh-countdown">60s</span>
+                </div>
+                
+                <button id="share-btn" class="btn-secondary px-3 py-2 rounded-md text-sm focus:ring">
+                    <i class="fas fa-share-alt mr-1"></i>
+                    Share
+                </button>
+                
+                <button id="fullscreen-btn" class="btn-secondary p-2 rounded-md focus:ring">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Auto-refresh Indicator - removed as it's now inline -->
+
+    <!-- Main Content -->
+    <main class="fluid-container">
+        <!-- Loading State -->
+        <div id="dashboard-loading" class="flex justify-center items-center h-64">
+            <div class="text-center">
+                <i class="fas fa-spinner spinner text-blue-500 text-2xl mb-3"></i>
+                <p class="text-gray-600">Loading dashboard...</p>
+            </div>
+        </div>
+
+        <!-- Dashboard Container -->
+        <div id="dashboard-container" class="hidden">
+            <!-- Empty State -->
+            <div id="empty-dashboard" class="text-center py-16 px-4">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-chart-line text-gray-400 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">No Content Available</h3>
+                <p class="text-gray-600 max-w-md mx-auto">This dashboard doesn't have any blocks yet. The owner needs to add content to make it viewable.</p>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div id="dashboard-grid" class="dashboard-grid hidden">
+                <!-- Blocks will be rendered here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="flex items-center justify-center space-x-2">
+                <span>Powered by</span>
+                <div class="flex items-center space-x-1">
+                    <svg class="h-3 w-3 text-gray-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 4L4 8L12 12L20 8L12 4Z" fill="currentColor"/>
+                        <path d="M4 12L12 16L20 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 16L12 20L20 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="font-medium text-gray-600">Snappy Learn</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating Action Button -->
+    <div class="fab" id="fab-btn" title="More Actions">
+        <i class="fas fa-ellipsis-h"></i>
+    </div>
+
+    <!-- FAB Context Menu -->
+    <div id="fab-menu" class="hidden fixed bottom-20 right-6 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-1000 min-w-40">
+        <button id="refresh-btn" class="w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-center space-x-2 text-sm text-gray-700">
+            <i class="fas fa-sync-alt text-blue-500"></i>
+            <span>Refresh</span>
+        </button>
+        <button id="share-fab-btn" class="w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-center space-x-2 text-sm text-gray-700">
+            <i class="fas fa-share-alt text-green-500"></i>
+            <span>Share</span>
+        </button>
+        <button id="fullscreen-fab-btn" class="w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-center space-x-2 text-sm text-gray-700">
+            <i class="fas fa-expand text-purple-500"></i>
+            <span>Fullscreen</span>
+        </button>
+        <hr class="my-1 border-gray-200">
+        <button id="report-btn" class="w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-center space-x-2 text-sm text-gray-700">
+            <i class="fas fa-flag text-orange-500"></i>
+            <span>Report</span>
+        </button>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="hidden fixed inset-0 modal-backdrop overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        <div class="modal-content w-full max-w-lg rounded-lg p-6">
+            <div class="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Share Dashboard</h3>
+                    <p class="text-sm text-gray-600 mt-1">Share this live dashboard with others</p>
+                </div>
+                <button id="close-share-modal" class="p-1 rounded-md hover:bg-gray-100 focus:ring">
+                    <i class="fas fa-times text-gray-400"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Link Section -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Dashboard Link</label>
+                    <div class="flex items-center space-x-2">
+                        <input 
+                            type="text" 
+                            id="share-link" 
+                            readonly
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm text-gray-700 focus:ring" 
+                            value=""
+                        >
+                        <button 
+                            id="copy-link-btn" 
+                            class="btn-primary px-3 py-2 rounded-md text-sm focus:ring"
+                        >
+                            Copy
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Updates automatically every minute
+                    </p>
+                </div>
+
+                <!-- Quick Share Options -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Quick Share</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button 
+                            id="share-email" 
+                            class="flex flex-col items-center p-3 border border-gray-300 rounded-md hover:bg-gray-50 focus:ring transition-colors"
+                        >
+                            <i class="fas fa-envelope text-blue-500 mb-1"></i>
+                            <span class="text-xs text-gray-700">Email</span>
+                        </button>
+                        <button 
+                            id="share-social" 
+                            class="flex flex-col items-center p-3 border border-gray-300 rounded-md hover:bg-gray-50 focus:ring transition-colors"
+                        >
+                            <i class="fas fa-share-alt text-green-500 mb-1"></i>
+                            <span class="text-xs text-gray-700">Social</span>
+                        </button>
+                        <button 
+                            id="show-qr-btn" 
+                            class="flex flex-col items-center p-3 border border-gray-300 rounded-md hover:bg-gray-50 focus:ring transition-colors"
+                        >
+                            <i class="fas fa-qrcode text-purple-500 mb-1"></i>
+                            <span class="text-xs text-gray-700">QR Code</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- QR Code Section -->
+                <div id="qr-code-container" class="hidden text-center">
+                    <div class="w-40 h-40 bg-gray-100 border border-gray-200 mx-auto rounded-md flex items-center justify-center mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-qrcode text-gray-400 text-2xl mb-2"></i>
+                            <p class="text-xs text-gray-500">QR Code</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600">Scan to view dashboard</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Get dashboard ID from template variable (passed from server)
+        const DASHBOARD_ID = 'dash_1748689220237_8fytasoa1'; // This comes from your web route
+        
+        // Configuration
+        const API_BASE = '/api';
+        const AUTO_REFRESH_INTERVAL = 60000; // 1 minute
+        const ENABLE_AUTO_REFRESH = true;
+        
+        // Global state
+        let currentDashboard = null;
+        let blocks = [];
+        let dataSources = [];
+        let refreshInterval = null;
+        let countdownInterval = null;
+        let isFullscreen = false;
+        let countdown = 60;
+        
+        // Utility functions
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            const iconClass = type === 'success' ? 'fa-check text-green-500' : 
+                             type === 'error' ? 'fa-exclamation-triangle text-red-500' : 
+                             'fa-info text-blue-500';
+            
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <i class="fas ${iconClass}"></i>
+                    <span>${message}</span>
+                    <button onclick="this.closest('.toast').remove()" class="ml-2 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 3000);
+        }
+
+        function updateLastUpdated() {
+            const lastUpdated = document.getElementById('last-updated');
+            const updateTime = document.getElementById('update-time');
+            const now = new Date();
+            updateTime.textContent = now.toLocaleTimeString();
+            lastUpdated.classList.remove('hidden');
+        }
+
+        function showRefreshIndicator() {
+            const indicator = document.getElementById('refresh-indicator');
+            const icon = document.getElementById('refresh-icon');
+            indicator.classList.add('refreshing');
+            
+            setTimeout(() => {
+                indicator.classList.remove('refreshing');
+            }, 1000);
+        }
+
+        function updateCountdown() {
+            const countdownElement = document.getElementById('refresh-countdown');
+            countdownElement.textContent = `${countdown}s`;
+            
+            if (countdown <= 0) {
+                countdown = 60;
+                refreshDashboard();
+            } else {
+                countdown--;
+            }
+        }
+
+        // Get dashboard ID from template variable
+        function getDashboardIdFromUrl() {
+            console.log('Using dashboard ID from template:', DASHBOARD_ID); // Debug log
+            return DASHBOARD_ID;
+        }
+
+        function getCurrentUrl() {
+            return window.location.href;
+        }
+
+        // Auto-refresh functionality
+        function startAutoRefresh() {
+            if (!ENABLE_AUTO_REFRESH) return;
+            
+            countdownInterval = setInterval(updateCountdown, 1000);
+            
+            refreshInterval = setInterval(async () => {
+                try {
+                    showRefreshIndicator();
+                    await refreshDashboard();
+                    countdown = 60;
+                } catch (error) {
+                    console.error('Auto-refresh failed:', error);
+                }
+            }, AUTO_REFRESH_INTERVAL);
+        }
+
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+
+        // Fullscreen functionality
+        function toggleFullscreen() {
+            if (!isFullscreen) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                } else if (document.documentElement.msRequestFullscreen) {
+                    document.documentElement.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
+        function updateFullscreenButtons() {
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            const fullscreenFabBtn = document.getElementById('fullscreen-fab-btn');
+            const icon = isFullscreen ? 'fa-compress' : 'fa-expand';
+            const text = isFullscreen ? 'Exit Fullscreen' : 'Fullscreen';
+            
+            fullscreenBtn.querySelector('i').className = `fas ${icon}`;
+            fullscreenFabBtn.querySelector('i').className = `fas ${icon}`;
+            fullscreenFabBtn.querySelector('span').textContent = text.replace('Fullscreen', 'Full');
+        }
+
+        // FAB menu functionality
+        function toggleFabMenu() {
+            const fabMenu = document.getElementById('fab-menu');
+            fabMenu.classList.toggle('hidden');
+        }
+
+        function closeFabMenu() {
+            document.getElementById('fab-menu').classList.add('hidden');
+        }
+
+        // Share modal functions
+        function openShareModal() {
+            const modal = document.getElementById('share-modal');
+            const shareLink = document.getElementById('share-link');
+            shareLink.value = getCurrentUrl();
+            modal.classList.remove('hidden');
+            closeFabMenu();
+        }
+
+        function closeShareModal() {
+            document.getElementById('share-modal').classList.add('hidden');
+        }
+
+        function copyShareLink() {
+            const shareLink = document.getElementById('share-link');
+            const copyBtn = document.getElementById('copy-link-btn');
+            
+            shareLink.select();
+            shareLink.setSelectionRange(0, 99999);
+            
+            try {
+                document.execCommand('copy');
+                
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                copyBtn.style.background = '#10b981';
+                
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.style.background = '';
+                }, 2000);
+                
+                showToast('Link copied to clipboard!');
+            } catch (err) {
+                showToast('Failed to copy link', 'error');
+            }
+        }
+
+        function shareViaEmail() {
+            const shareLink = getCurrentUrl();
+            const subject = encodeURIComponent(`Dashboard: ${currentDashboard?.title || 'Live Dashboard'}`);
+            const body = encodeURIComponent(`View this live dashboard: ${shareLink}`);
+            window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+        }
+
+        function shareViaSocial() {
+            const shareLink = getCurrentUrl();
+            if (navigator.share) {
+                navigator.share({
+                    title: currentDashboard?.title || 'Live Dashboard',
+                    text: 'Check out this live dashboard',
+                    url: shareLink
+                }).catch(() => {
+                    copyShareLink();
+                });
+            } else {
+                copyShareLink();
+            }
+        }
+
+        function toggleQRCode() {
+            const container = document.getElementById('qr-code-container');
+            container.classList.toggle('hidden');
+        }
+
+        // API functions with consistent response handling
+        async function handleApiResponse(response) {
+            console.log('API Response status:', response.status, response.statusText); // Debug log
+            
+            if (!response.ok) {
+                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                
+                try {
+                    const errorData = await response.json();
+                    console.log('API Error data:', errorData); // Debug log
+                    if (errorData.message) {
+                        errorMessage = errorData.message;
+                    }
+                } catch (parseError) {
+                    console.log('Could not parse error response as JSON'); // Debug log
+                }
+                
+                throw new Error(errorMessage);
+            }
+            
+            const result = await response.json();
+            console.log('API Response data:', result); // Debug log
+            
+            if (!result.success) {
+                throw new Error(result.message || 'API request failed');
+            }
+            
+            return result; // Return full result object
+        }
+
+        async function fetchDashboard(dashboardId) {
+            try {
+                const response = await fetch(`${API_BASE}/dashboards/${dashboardId}`);
+                const result = await handleApiResponse(response);
+                return result.data; // Extract data from full response
+            } catch (error) {
+                console.error('Error fetching dashboard:', error);
+                throw error;
+            }
+        }
+
+        async function refreshDashboard() {
+            const dashboardId = getDashboardIdFromUrl();
+            console.log('Refreshing dashboard with ID:', dashboardId); // Debug log
+            
+            if (!dashboardId) {
+                console.error('No dashboard ID available for refresh'); // Debug log
+                return;
+            }
+            
+            try {
+                const updatedDashboard = await fetchDashboard(dashboardId);
+                currentDashboard = updatedDashboard;
+                blocks = updatedDashboard.blocks || [];
+                dataSources = updatedDashboard.datasources || [];
+                
+                console.log('Dashboard refreshed - Blocks:', blocks.length, 'Data sources:', dataSources.length); // Debug log
+                
+                renderDashboard();
+                updateLastUpdated();
+            } catch (error) {
+                console.error('Failed to refresh dashboard:', error);
+                showToast('Failed to refresh dashboard', 'error');
+            }
+        }
+
+        // UI rendering
+        function renderDashboard() {
+            const container = document.getElementById('dashboard-container');
+            const loading = document.getElementById('dashboard-loading');
+            const emptyState = document.getElementById('empty-dashboard');
+            const grid = document.getElementById('dashboard-grid');
+            
+            loading.classList.add('hidden');
+            container.classList.remove('hidden');
+            
+            document.getElementById('dashboard-title').textContent = currentDashboard?.title || 'Untitled Dashboard';
+            const description = document.getElementById('dashboard-description');
+            if (currentDashboard?.description) {
+                description.textContent = currentDashboard.description;
+                description.classList.remove('hidden');
+            } else {
+                description.classList.add('hidden');
+            }
+            
+            if (!blocks || blocks.length === 0) {
+                emptyState.classList.remove('hidden');
+                grid.classList.add('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            grid.classList.remove('hidden');
+            
+            grid.innerHTML = '';
+            
+            // Sort blocks by position
+            const sortedBlocks = [...blocks].sort((a, b) => (a.position || 0) - (b.position || 0));
+            
+            sortedBlocks.forEach(block => {
+                const blockElement = createBlockElement(block);
+                grid.appendChild(blockElement);
+            });
+        }
+
+        function createBlockElement(block) {
+            const blockDiv = document.createElement('div');
+            blockDiv.className = `dashboard-block block-${block.size}`;
+            blockDiv.id = `block-${block.id}`;
+            
+            if (block.title && block.title !== 'New Block') {
+                const header = document.createElement('div');
+                header.className = 'block-header';
+                
+                const title = document.createElement('h3');
+                title.className = 'block-title';
+                title.textContent = block.title;
+                
+                header.appendChild(title);
+                blockDiv.appendChild(header);
+            }
+            
+            const content = document.createElement('div');
+            content.className = 'block-content';
+            
+            if (block.type === 'text') {
+                content.appendChild(createTextBlockView(block));
+            } else if (block.type === 'chart' || block.type === 'ai') {
+                content.appendChild(createChartBlockView(block));
+            }
+            
+            blockDiv.appendChild(content);
+            
+            return blockDiv;
+        }
+
+        function createTextBlockView(block) {
+            const textDiv = document.createElement('div');
+            textDiv.className = 'text-content';
+            
+            if (block.content) {
+                const formattedText = block.content
+                    .split('\n\n')
+                    .map(paragraph => `<p>${paragraph.replace(/\n/g, '<br>')}</p>`)
+                    .join('');
+                textDiv.innerHTML = formattedText;
+            } else {
+                textDiv.innerHTML = '<p class="text-gray-500 italic">No content available</p>';
+            }
+            
+            return textDiv;
+        }
+
+        function createChartBlockView(block) {
+            const container = document.createElement('div');
+            
+            // Determine chart size based on block size
+            let chartClass = 'chart-container';
+            if (block.size >= 8) {
+                chartClass += ' large';
+            } else if (block.size <= 3) {
+                chartClass += ' small';
+            }
+            
+            container.className = chartClass;
+            
+            if (block.content) {
+                try {
+                    const chartConfig = typeof block.content === 'string' ? JSON.parse(block.content) : block.content;
+                    
+                    const enhancedConfig = {
+                        ...chartConfig,
+                        credits: { enabled: false },
+                        chart: {
+                            ...chartConfig.chart,
+                            backgroundColor: 'transparent',
+                            style: {
+                                fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
+                            },
+                            spacingTop: 10,
+                            spacingRight: 10,
+                            spacingBottom: 10,
+                            spacingLeft: 10
+                        },
+                        title: {
+                            ...chartConfig.title,
+                            style: {
+                                color: '#1e293b',
+                                fontSize: '16px',
+                                fontWeight: '600'
+                            }
+                        },
+                        legend: {
+                            ...chartConfig.legend,
+                            itemStyle: {
+                                color: '#64748b'
+                            }
+                        },
+                        xAxis: {
+                            ...chartConfig.xAxis,
+                            labels: {
+                                style: {
+                                    color: '#64748b'
+                                }
+                            },
+                            gridLineColor: '#e2e8f0'
+                        },
+                        yAxis: {
+                            ...chartConfig.yAxis,
+                            labels: {
+                                style: {
+                                    color: '#64748b'
+                                }
+                            },
+                            gridLineColor: '#e2e8f0'
+                        },
+                        plotOptions: {
+                            ...chartConfig.plotOptions,
+                            series: {
+                                ...chartConfig.plotOptions?.series,
+                                animation: {
+                                    duration: 800
+                                }
+                            }
+                        }
+                    };
+                    
+                    setTimeout(() => {
+                        Highcharts.chart(container, enhancedConfig);
+                    }, 50);
+                } catch (error) {
+                    console.error('Error rendering chart:', error);
+                    container.className = 'chart-container flex items-center justify-center bg-red-50 border border-red-200 rounded-md';
+                    container.innerHTML = `
+                        <div class="text-center text-red-600">
+                            <i class="fas fa-exclamation-triangle text-lg mb-2"></i>
+                            <p class="font-medium">Chart Error</p>
+                            <p class="text-sm">Unable to render chart</p>
+                        </div>
+                    `;
+                }
+            } else {
+                container.className = 'chart-container flex items-center justify-center bg-gray-50 border border-gray-200 rounded-md';
+                container.innerHTML = `
+                    <div class="text-center text-gray-500">
+                        <i class="fas fa-chart-bar text-2xl mb-2"></i>
+                        <p class="font-medium">No Chart Data</p>
+                        <p class="text-sm">Chart content not available</p>
+                    </div>
+                `;
+            }
+            
+            return container;
+        }
+
+        // Initialize app
+        async function initializeApp() {
+            const dashboardId = getDashboardIdFromUrl();
+            console.log('Initializing live dashboard with ID:', dashboardId); // Debug log
+            
+            if (!dashboardId) {
+                console.error('No dashboard ID found'); // Debug log
+                showToast('Dashboard not found', 'error');
+                document.getElementById('dashboard-loading').innerHTML = `
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-xl mb-3"></i>
+                        <p class="text-gray-600">Dashboard not found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                console.log('Fetching dashboard...'); // Debug log
+                currentDashboard = await fetchDashboard(dashboardId);
+                blocks = currentDashboard.blocks || [];
+                dataSources = currentDashboard.datasources || [];
+                
+                console.log('Dashboard loaded successfully:', currentDashboard.title); // Debug log
+                console.log('Blocks:', blocks.length, 'Data sources:', dataSources.length); // Debug log
+                
+                renderDashboard();
+                startAutoRefresh();
+                
+                document.title = `${currentDashboard.title || 'Dashboard'} - Live View | Snappy Learn`;
+                
+                console.log('Live dashboard initialization complete'); // Debug log
+                
+            } catch (error) {
+                console.error('Failed to initialize dashboard:', error);
+                console.error('Error details:', error.message, error.stack); // More detailed error logging
+                
+                let errorMessage = 'Failed to load dashboard';
+                if (error.message.includes('404') || error.message.includes('not found')) {
+                    errorMessage = 'Dashboard not found or access denied';
+                } else if (error.message.includes('403') || error.message.includes('unauthorized')) {
+                    errorMessage = 'Access denied to this dashboard';
+                }
+                
+                document.getElementById('dashboard-loading').innerHTML = `
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-xl mb-3"></i>
+                        <p class="text-gray-600 mb-3">${errorMessage}</p>
+                        <button onclick="window.location.reload()" class="btn-primary px-4 py-2 rounded-md text-sm">
+                            Try Again
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            
+            // Share functionality
+            document.getElementById('share-btn').addEventListener('click', openShareModal);
+            document.getElementById('share-fab-btn').addEventListener('click', openShareModal);
+            document.getElementById('close-share-modal').addEventListener('click', closeShareModal);
+            document.getElementById('copy-link-btn').addEventListener('click', copyShareLink);
+            document.getElementById('share-email').addEventListener('click', shareViaEmail);
+            document.getElementById('share-social').addEventListener('click', shareViaSocial);
+            document.getElementById('show-qr-btn').addEventListener('click', toggleQRCode);
+            
+            // Fullscreen
+            document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
+            document.getElementById('fullscreen-fab-btn').addEventListener('click', toggleFullscreen);
+            
+            // FAB menu
+            document.getElementById('fab-btn').addEventListener('click', toggleFabMenu);
+            document.getElementById('refresh-btn').addEventListener('click', () => {
+                refreshDashboard();
+                countdown = 60;
+                closeFabMenu();
+                showToast('Dashboard refreshed');
+            });
+            
+            document.getElementById('report-btn').addEventListener('click', () => {
+                showToast('Report feature coming soon', 'info');
+                closeFabMenu();
+            });
+            
+            // Fullscreen events
+            document.addEventListener('fullscreenchange', () => {
+                isFullscreen = !!document.fullscreenElement;
+                updateFullscreenButtons();
+            });
+            
+            // Click outside handlers
+            document.addEventListener('click', (e) => {
+                const fabBtn = document.getElementById('fab-btn');
+                const fabMenu = document.getElementById('fab-menu');
+                
+                if (!fabBtn.contains(e.target) && !fabMenu.contains(e.target)) {
+                    closeFabMenu();
+                }
+            });
+            
+            document.getElementById('share-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'share-modal') {
+                    closeShareModal();
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'F11') {
+                    e.preventDefault();
+                    toggleFullscreen();
+                }
+                
+                if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
+                    e.preventDefault();
+                    refreshDashboard();
+                    countdown = 60;
+                }
+                
+                if (e.key === 'Escape') {
+                    closeShareModal();
+                    closeFabMenu();
+                }
+            });
+            
+            // Cleanup
+            window.addEventListener('beforeunload', () => {
+                stopAutoRefresh();
+            });
+            
+            // Visibility change handling
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    stopAutoRefresh();
+                } else {
+                    startAutoRefresh();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

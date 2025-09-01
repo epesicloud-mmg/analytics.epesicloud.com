@@ -1,0 +1,753 @@
+<!-- Complete Projects View Page -->
+
+<style>
+    /* Project-specific styles */
+    .project-card {
+        transition: all 0.2s ease;
+    }
+    .project-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .project-badge {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    
+    .project-badge-blue { background-color: #3b82f6; }
+    .project-badge-green { background-color: #10b981; }
+    .project-badge-purple { background-color: #8b5cf6; }
+    .project-badge-orange { background-color: #f59e0b; }
+    .project-badge-pink { background-color: #ec4899; }
+    .project-badge-indigo { background-color: #6366f1; }
+    .project-badge-red { background-color: #ef4444; }
+    .project-badge-yellow { background-color: #eab308; }
+    .project-badge-teal { background-color: #14b8a6; }
+    .project-badge-gray { background-color: #6b7280; }
+    
+    /* Grid and List views */
+    .projects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .projects-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    /* Project Item */
+    .project-item {
+        transition: all 0.2s ease-in-out;
+        position: relative;
+    }
+    
+    .project-item:hover {
+        transform: translateY(-2px);
+    }
+    
+    .project-item-menu {
+        visibility: hidden;
+        opacity: 0;
+        transition: visibility 0s, opacity 0.2s ease-in-out;
+    }
+    
+    .project-item:hover .project-item-menu {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* Member avatars */
+    .member-avatar {
+        transition: all 0.2s ease;
+    }
+
+    .member-avatar:hover {
+        transform: scale(1.1);
+    }
+
+    /* View toggle */
+    .view-active {
+        background-color: #e0e7ff;
+        color: #4338ca;
+    }
+
+    .view-inactive {
+        background-color: white;
+        color: #6b7280;
+    }
+</style>
+
+<!-- Loading State for entire page -->
+<div id="page-loading" class="flex justify-center items-center h-64">
+    <div class="flex items-center space-x-2">
+        <i class="fas fa-spinner animate-spin text-indigo-600 text-xl"></i>
+        <span class="text-gray-600">Loading projects...</span>
+    </div>
+</div>
+
+<!-- Error State -->
+<div id="error-state" class="hidden text-center py-12">
+    <div class="h-24 w-24 bg-red-100 mx-auto rounded-full flex items-center justify-center mb-4">
+        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+    </div>
+    <h3 class="text-lg font-medium text-gray-900 mb-2">Failed to Load Projects</h3>
+    <p class="text-gray-500 mb-4">There was an error loading your projects. Please try again.</p>
+    <button onclick="ProjectsView.retry()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        <i class="fas fa-refresh mr-2"></i>
+        Retry
+    </button>
+</div>
+
+<!-- Main Content Container -->
+<div id="main-content" class="hidden">
+    <!-- Projects Header -->
+    <div class="mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Projects</h1>
+                <p id="projects-subtitle" class="text-sm text-gray-500 mt-1">Manage your analytics projects</p>
+            </div>
+            
+            <div class="mt-4 md:mt-0 flex flex-wrap items-center space-x-3">
+                <!-- View Toggle -->
+                <div class="flex rounded-md shadow-sm">
+                    <button id="grid-view" class="view-active px-4 py-2 text-sm font-medium border border-gray-200 rounded-l-md focus:z-10 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                        <i class="fas fa-th-large mr-1"></i> Grid
+                    </button>
+                    <button id="list-view" class="view-inactive px-4 py-2 text-sm font-medium border border-gray-200 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                        <i class="fas fa-list mr-1"></i> List
+                    </button>
+                </div>
+                
+                <!-- Sort Dropdown -->
+                <div class="relative">
+                    <select id="sort-projects" class="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <option value="created_at_desc">Newest First</option>
+                        <option value="created_at_asc">Oldest First</option>
+                        <option value="name_asc">Name A-Z</option>
+                        <option value="name_desc">Name Z-A</option>
+                        <option value="updated_at_desc">Recently Updated</option>
+                        <option value="dashboard_count_desc">Most Dashboards</option>
+                    </select>
+                </div>
+                
+                <!-- New Project -->
+                <button onclick="ProjectsView.createProject()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-plus mr-2"></i>
+                    New Project
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
+        <div class="flex flex-wrap items-center justify-between">
+            <div class="flex flex-wrap items-center space-x-4">
+                <!-- Search Filter -->
+                <div class="relative w-64">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400 text-sm"></i>
+                    </div>
+                    <input 
+                        id="project-search"
+                        type="text" 
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-600 placeholder-gray-400" 
+                        placeholder="Search projects..."
+                    >
+                </div>
+                
+                <!-- Status Filter -->
+                <div class="relative">
+                    <select id="status-filter" class="px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 text-sm text-gray-500">
+                <span id="projects-count">0 projects</span>
+                <span>•</span>
+                <button id="clear-filters" class="text-indigo-600 hover:text-indigo-800 font-medium">Clear filters</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Projects -->
+    <div id="loading-projects" class="hidden flex justify-center items-center p-8">
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-spinner animate-spin text-indigo-600 text-xl"></i>
+            <span class="text-gray-600">Loading projects...</span>
+        </div>
+    </div>
+    
+    <!-- Projects Container -->
+    <div id="projects-container" class="projects-grid">
+        <!-- Projects will be populated here -->
+    </div>
+    
+    <!-- Empty State -->
+    <div id="projects-empty" class="hidden text-center py-12">
+        <div class="h-24 w-24 bg-gray-100 mx-auto rounded-full flex items-center justify-center mb-4">
+            <i class="fas fa-folder-open text-gray-400 text-2xl"></i>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
+        <p class="text-gray-500 mb-4">Create your first project to get started with analytics</p>
+        <button onclick="ProjectsView.createProject()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <i class="fas fa-plus mr-2"></i>
+            Create Project
+        </button>
+    </div>
+</div>
+
+<!-- Project Menu Dropdown (for actions) -->
+<div id="project-menu" class="hidden absolute z-10 mt-1 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+    <div class="py-1">
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-action="view">
+            <i class="fas fa-eye mr-2"></i> View Project
+        </a>
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-action="edit">
+            <i class="fas fa-edit mr-2"></i> Edit Project
+        </a>
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-action="settings">
+            <i class="fas fa-cog mr-2"></i> Settings
+        </a>
+        <hr class="my-1">
+        <a href="#" class="block px-4 py-2 text-sm text-red-700 hover:bg-red-50" data-action="archive">
+            <i class="fas fa-archive mr-2"></i> Archive Project
+        </a>
+    </div>
+</div>
+
+<!-- Projects View JavaScript -->
+<script>
+(function() {
+    'use strict';
+    
+    // Projects view state
+    const projectsState = {
+        projects: [],
+        filteredProjects: [],
+        currentView: 'grid',
+        currentSort: 'created_at_desc',
+        searchTerm: '',
+        statusFilter: 'all',
+        isInitialized: false,
+        activeOrganization: null
+    };
+    
+    // Color mapping for project badges
+    const projectColorMap = {
+        purple: 'project-badge-purple',
+        blue: 'project-badge-blue', 
+        green: 'project-badge-green',
+        yellow: 'project-badge-yellow',
+        red: 'project-badge-red',
+        pink: 'project-badge-pink',
+        indigo: 'project-badge-indigo',
+        teal: 'project-badge-teal',
+        orange: 'project-badge-orange',
+        gray: 'project-badge-gray'
+    };
+
+    // Utility functions
+    function formatDate(dateString) {
+        if (!dateString) return 'Unknown';
+        
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) return '1 day ago';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+        return date.toLocaleDateString();
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // API functions
+    async function fetchProjects(orgId) {
+        try {
+            console.log('Fetching projects for organization:', orgId);
+            
+            // Try SnappyLearn function first
+            if (window.SnappyLearn && typeof window.SnappyLearn.loadOrganizationProjects === 'function') {
+                const projects = await window.SnappyLearn.loadOrganizationProjects(orgId);
+                return projects || [];
+            } else {
+                // Fall back to direct API call
+                const response = await window.SnappyLearn.apiCall(`/api/admin/organizations/${orgId}/projects`);
+                
+                if (response && response.success && Array.isArray(response.data)) {
+                    return response.data;
+                } else {
+                    console.warn('Invalid projects response, returning empty array');
+                    return [];
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching projects:', error);
+            return [];
+        }
+    }
+
+    // Render functions
+    function renderProjectCard(project) {
+        const colorClass = projectColorMap[project.color] || 'project-badge-indigo';
+        const dashboardCount = parseInt(project.dashboard_count) || 0;
+        const memberCount = project.assigned_users ? project.assigned_users.length : 0;
+        
+        return `
+            <div class="project-item project-card bg-white rounded-lg shadow-sm overflow-hidden border border-transparent hover:border-indigo-200" data-project-id="${project.id}">
+                <div class="p-6">
+                    <!-- Project Header -->
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                                <span class="project-badge ${colorClass}"></span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800">${escapeHtml(project.name || 'Untitled Project')}</h3>
+                                <p class="text-sm text-gray-500">Created ${formatDate(project.created_at)}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Project Menu -->
+                        <div class="project-item-menu">
+                            <button class="p-1.5 rounded-full hover:bg-gray-100 focus:outline-none" onclick="ProjectsView.showProjectMenu(event, '${project.id}')">
+                                <i class="fas fa-ellipsis-v text-gray-500"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Project Description -->
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-2">${escapeHtml(project.description || 'No description provided')}</p>
+                    
+                    <!-- Project Stats -->
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-indigo-600">${dashboardCount}</div>
+                            <div class="text-xs text-gray-500">Dashboard${dashboardCount !== 1 ? 's' : ''}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-purple-600">${memberCount}</div>
+                            <div class="text-xs text-gray-500">Member${memberCount !== 1 ? 's' : ''}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Project Members (avatars) -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex -space-x-2">
+                            ${memberCount > 0 ? 
+                                Array.from({length: Math.min(memberCount, 3)}, (_, i) => `
+                                    <div class="member-avatar w-6 h-6 bg-indigo-100 rounded-full border-2 border-white flex items-center justify-center">
+                                        <span class="text-xs font-medium text-indigo-600">${String.fromCharCode(65 + i)}</span>
+                                    </div>
+                                `).join('') +
+                                (memberCount > 3 ? `<div class="w-6 h-6 bg-gray-100 rounded-full border-2 border-white flex items-center justify-center">
+                                    <span class="text-xs font-medium text-gray-600">+${memberCount - 3}</span>
+                                </div>` : '')
+                                : '<span class="text-xs text-gray-500">No members</span>'
+                            }
+                        </div>
+                        
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            Active
+                        </span>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="mt-4 flex space-x-2">
+                        <a href="/project/${project.id}" class="flex-1 text-center px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition-colors">
+                            <i class="fas fa-eye mr-1"></i> View
+                        </a>
+                        <button onclick="ProjectsView.createDashboard('${project.id}')" class="flex-1 text-center px-3 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 transition-colors">
+                            <i class="fas fa-plus mr-1"></i> Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderProjectList(project) {
+        const colorClass = projectColorMap[project.color] || 'project-badge-indigo';
+        const dashboardCount = parseInt(project.dashboard_count) || 0;
+        const memberCount = project.assigned_users ? project.assigned_users.length : 0;
+        
+        return `
+            <div class="project-item bg-white rounded-lg shadow-sm border border-transparent hover:border-indigo-200 p-4" data-project-id="${project.id}">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4 flex-1">
+                        <!-- Project Icon & Info -->
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <span class="project-badge ${colorClass}"></span>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-800">${escapeHtml(project.name || 'Untitled Project')}</h3>
+                                <p class="text-xs text-gray-500">${escapeHtml(project.description || 'No description')}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Project Stats -->
+                        <div class="hidden md:flex items-center space-x-6">
+                            <div class="text-center">
+                                <div class="text-sm font-semibold text-indigo-600">${dashboardCount}</div>
+                                <div class="text-xs text-gray-500">Dashboards</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-sm font-semibold text-purple-600">${memberCount}</div>
+                                <div class="text-xs text-gray-500">Members</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xs text-gray-500">${formatDate(project.updated_at)}</div>
+                                <div class="text-xs text-gray-400">Updated</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            Active
+                        </span>
+                        <a href="/project/${project.id}" class="px-3 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800">
+                            View
+                        </a>
+                        <button class="p-1 rounded hover:bg-gray-100 focus:outline-none" onclick="ProjectsView.showProjectMenu(event, '${project.id}')">
+                            <i class="fas fa-ellipsis-v text-gray-500 text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderCreateProjectCard() {
+        return `
+            <div class="project-item bg-white rounded-lg shadow-sm border border-dashed border-gray-300 flex items-center justify-center hover:border-indigo-300 cursor-pointer" onclick="ProjectsView.createProject()">
+                <div class="text-center p-8">
+                    <div class="h-12 w-12 bg-indigo-100 mx-auto rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-plus text-indigo-600 text-lg"></i>
+                    </div>
+                    <h3 class="text-md font-medium text-gray-800 mb-1">Create New Project</h3>
+                    <p class="text-sm text-gray-500">Start a new analytics project</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderProjects(projectList = projectsState.filteredProjects) {
+        const container = document.getElementById('projects-container');
+        const emptyState = document.getElementById('projects-empty');
+        const countElement = document.getElementById('projects-count');
+        
+        console.log('Rendering projects:', projectList ? projectList.length : 0);
+        
+        // Update count
+        if (countElement) {
+            const count = projectList ? projectList.length : 0;
+            countElement.textContent = `${count} project${count !== 1 ? 's' : ''}`;
+        }
+        
+        if (!projectList || projectList.length === 0) {
+            container.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        
+        emptyState.classList.add('hidden');
+        
+        const renderFunction = projectsState.currentView === 'grid' ? renderProjectCard : renderProjectList;
+        const projectItems = projectList.map(renderFunction).join('');
+        const createCard = projectsState.currentView === 'grid' ? renderCreateProjectCard() : '';
+        
+        container.innerHTML = createCard + projectItems;
+        
+        // Update container class
+        container.className = projectsState.currentView === 'grid' ? 'projects-grid' : 'projects-list';
+    }
+
+    // Filter and sort functions
+    function filterProjects() {
+        let filtered = [...projectsState.projects];
+        
+        // Apply search filter
+        if (projectsState.searchTerm) {
+            const term = projectsState.searchTerm.toLowerCase();
+            filtered = filtered.filter(project => 
+                (project.name && project.name.toLowerCase().includes(term)) ||
+                (project.description && project.description.toLowerCase().includes(term))
+            );
+        }
+        
+        // Apply status filter
+        if (projectsState.statusFilter !== 'all') {
+            // For now, all projects are active
+            if (projectsState.statusFilter === 'archived') {
+                filtered = [];
+            }
+        }
+        
+        projectsState.filteredProjects = filtered;
+        sortProjects();
+    }
+
+    function sortProjects() {
+        const sorted = [...projectsState.filteredProjects];
+        
+        switch(projectsState.currentSort) {
+            case 'created_at_desc':
+                sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+                break;
+            case 'created_at_asc':
+                sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+                break;
+            case 'updated_at_desc':
+                sorted.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+                break;
+            case 'name_asc':
+                sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                break;
+            case 'name_desc':
+                sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+                break;
+            case 'dashboard_count_desc':
+                sorted.sort((a, b) => (parseInt(b.dashboard_count) || 0) - (parseInt(a.dashboard_count) || 0));
+                break;
+        }
+        
+        projectsState.filteredProjects = sorted;
+        renderProjects();
+    }
+
+    // Event handlers
+    function handleViewToggle(view) {
+        projectsState.currentView = view;
+        
+        // Update button states
+        document.getElementById('grid-view').className = view === 'grid' ? 
+            'view-active px-4 py-2 text-sm font-medium border border-gray-200 rounded-l-md focus:z-10 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500' :
+            'view-inactive px-4 py-2 text-sm font-medium border border-gray-200 rounded-l-md hover:bg-gray-50 focus:z-10 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500';
+            
+        document.getElementById('list-view').className = view === 'list' ? 
+            'view-active px-4 py-2 text-sm font-medium border border-gray-200 rounded-r-md focus:z-10 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500' :
+            'view-inactive px-4 py-2 text-sm font-medium border border-gray-200 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500';
+        
+        renderProjects();
+    }
+
+    function handleSearch() {
+        projectsState.searchTerm = document.getElementById('project-search').value;
+        filterProjects();
+    }
+
+    function handleSort() {
+        projectsState.currentSort = document.getElementById('sort-projects').value;
+        sortProjects();
+    }
+
+    function handleStatusFilter() {
+        projectsState.statusFilter = document.getElementById('status-filter').value;
+        filterProjects();
+    }
+
+    function clearFilters() {
+        document.getElementById('project-search').value = '';
+        document.getElementById('status-filter').value = 'all';
+        document.getElementById('sort-projects').value = 'created_at_desc';
+        
+        projectsState.searchTerm = '';
+        projectsState.statusFilter = 'all';
+        projectsState.currentSort = 'created_at_desc';
+        
+        filterProjects();
+    }
+
+    // Projects view object
+    window.ProjectsView = {
+        async init() {
+            console.log('Initializing projects view...');
+            
+            if (projectsState.isInitialized) {
+                console.log('Projects view already initialized');
+                return;
+            }
+            
+            try {
+                // Wait for layout to be ready
+                let attempts = 0;
+                while (!window.SnappyLearn && attempts < 30) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (!window.SnappyLearn) {
+                    throw new Error('SnappyLearn not available');
+                }
+                
+                console.log('SnappyLearn is ready');
+                
+                // Get active organization with retries
+                let orgAttempts = 0;
+                let activeOrg = null;
+                const maxOrgRetries = 10;
+                
+                while (orgAttempts < maxOrgRetries && !activeOrg) {
+                    try {
+                        if (typeof window.SnappyLearn.getActiveOrganization === 'function') {
+                            activeOrg = window.SnappyLearn.getActiveOrganization();
+                        }
+                    } catch (error) {
+                        console.warn('Error getting active organization:', error);
+                    }
+                    
+                    if (!activeOrg) {
+                        console.log(`Waiting for organization... attempt ${orgAttempts + 1}/${maxOrgRetries}`);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                    orgAttempts++;
+                }
+                
+                if (!activeOrg) {
+                    throw new Error('No active organization found after retries');
+                }
+                
+                projectsState.activeOrganization = activeOrg;
+                console.log('Active organization set:', activeOrg);
+                
+                // Update subtitle
+                const subtitle = document.getElementById('projects-subtitle');
+                if (subtitle) {
+                    subtitle.textContent = `Manage projects in ${activeOrg.name}`;
+                }
+                
+                // Fetch projects
+                console.log('Fetching projects for organization:', activeOrg.id);
+                const projects = await fetchProjects(activeOrg.id);
+                
+                projectsState.projects = projects;
+                projectsState.filteredProjects = [...projects];
+                
+                console.log('Projects loaded:', projects.length);
+                
+                // Render projects
+                renderProjects();
+                
+                // Show main content
+                document.getElementById('page-loading').classList.add('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                
+                projectsState.isInitialized = true;
+                console.log('Projects view initialized successfully');
+                
+            } catch (error) {
+                console.error('Failed to initialize projects view:', error);
+                
+                if (window.SnappyLearn && typeof window.SnappyLearn.showToast === 'function') {
+                    window.SnappyLearn.showToast(`Failed to load projects: ${error.message}`, 'error');
+                } else {
+                    console.error('Failed to load projects:', error.message);
+                }
+                
+                // Show error state
+                document.getElementById('page-loading').classList.add('hidden');
+                document.getElementById('error-state').classList.remove('hidden');
+            }
+        },
+        
+        retry() {
+            document.getElementById('error-state').classList.add('hidden');
+            document.getElementById('page-loading').classList.remove('hidden');
+            projectsState.isInitialized = false;
+            ProjectsView.init();
+        },
+        
+        createProject() {
+            if (window.SnappyLearn && typeof window.SnappyLearn.openModal === 'function') {
+                window.SnappyLearn.openModal('newProjectModal');
+            } else {
+                console.error('SnappyLearn.openModal not available');
+                alert('Create project functionality not available');
+            }
+        },
+        
+        createDashboard(projectId) {
+            console.log('Create dashboard for project:', projectId);
+            // For now, redirect to project page
+            window.location.href = `/project/${projectId}`;
+        },
+        
+        showProjectMenu(event, projectId) {
+            event.stopPropagation();
+            console.log('Show menu for project:', projectId);
+            // Project menu functionality coming soon
+            window.SnappyLearn?.showToast('Project menu coming soon', 'info');
+        }
+    };
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Projects view DOM loaded');
+        
+        // Initialize with a delay to ensure layout is ready
+        setTimeout(() => {
+            ProjectsView.init();
+        }, 1000);
+        
+        // View toggle
+        document.getElementById('grid-view')?.addEventListener('click', () => handleViewToggle('grid'));
+        document.getElementById('list-view')?.addEventListener('click', () => handleViewToggle('list'));
+        
+        // Search and filters
+        document.getElementById('project-search')?.addEventListener('input', handleSearch);
+        document.getElementById('sort-projects')?.addEventListener('change', handleSort);
+        document.getElementById('status-filter')?.addEventListener('change', handleStatusFilter);
+        document.getElementById('clear-filters')?.addEventListener('click', clearFilters);
+        
+        // Organization change handling
+        window.addEventListener('organizationChanged', function(event) {
+            console.log('Organization changed in projects view:', event.detail?.organization);
+            projectsState.isInitialized = false;
+            projectsState.projects = [];
+            projectsState.filteredProjects = [];
+            
+            document.getElementById('main-content').classList.add('hidden');
+            document.getElementById('page-loading').classList.remove('hidden');
+            
+            setTimeout(() => {
+                ProjectsView.init();
+            }, 500);
+        });
+        
+        // Project creation handling
+        window.addEventListener('projectCreated', function(event) {
+            console.log('Project created:', event.detail?.project);
+            const newProject = event.detail?.project;
+            
+            if (newProject) {
+                projectsState.projects.unshift(newProject);
+                filterProjects();
+            }
+        });
+    });
+
+    console.log('Projects view script loaded');
+})();
+</script>

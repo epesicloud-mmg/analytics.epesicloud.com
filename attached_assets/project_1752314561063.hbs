@@ -1,0 +1,858 @@
+<!-- Project Dashboard View Content -->
+<style>
+    /* Project-specific styles */
+    .dashboard-card {
+        transition: all 0.2s ease;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .project-badge {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 6px;
+    }
+    
+    .project-badge-blue { background-color: #3b82f6; }
+    .project-badge-green { background-color: #10b981; }
+    .project-badge-purple { background-color: #8b5cf6; }
+    .project-badge-orange { background-color: #f59e0b; }
+    .project-badge-pink { background-color: #ec4899; }
+    .project-badge-indigo { background-color: #6366f1; }
+    .project-badge-red { background-color: #ef4444; }
+    .project-badge-yellow { background-color: #f59e0b; }
+    .project-badge-teal { background-color: #14b8a6; }
+    .project-badge-gray { background-color: #6b7280; }
+    
+    /* Dashboard grid */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+    
+    /* Dashboard Item */
+    .dashboard-item {
+        transition: all 0.2s ease-in-out;
+        position: relative;
+    }
+    
+    .dashboard-item:hover {
+        transform: translateY(-2px);
+    }
+    
+    .dashboard-item-menu {
+        visibility: hidden;
+        opacity: 0;
+        transition: visibility 0s, opacity 0.2s ease-in-out;
+    }
+    
+    .dashboard-item:hover .dashboard-item-menu {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* Member avatars */
+    .member-avatar {
+        transition: all 0.2s ease;
+    }
+
+    .member-avatar:hover {
+        transform: scale(1.1);
+    }
+
+    /* Tab styles */
+    .tab-active {
+        border-bottom: 2px solid var(--primary);
+        color: var(--primary);
+    }
+
+    .tab-inactive {
+        color: #6b7280;
+        border-bottom: 2px solid transparent;
+    }
+
+    .tab-inactive:hover {
+        color: #374151;
+    }
+</style>
+
+<!-- Loading State for entire page -->
+<div id="page-loading" class="flex justify-center items-center h-64">
+    <div class="flex items-center space-x-2">
+        <i class="fas fa-spinner spinner text-indigo-600 text-xl"></i>
+        <span class="text-gray-600">Loading project...</span>
+    </div>
+</div>
+
+<!-- Error State -->
+<div id="error-state" class="hidden text-center py-12">
+    <div class="h-24 w-24 bg-red-100 mx-auto rounded-full flex items-center justify-center mb-4">
+        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+    </div>
+    <h3 class="text-lg font-medium text-gray-900 mb-2">Project Not Found</h3>
+    <p class="text-gray-500 mb-4">The project you're looking for doesn't exist or you don't have access to it.</p>
+    <a href="/projects" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        <i class="fas fa-arrow-left mr-2"></i>
+        Back to Projects
+    </a>
+</div>
+
+<!-- Main Content Container -->
+<div id="main-content" class="hidden">
+    <!-- Project Header -->
+    <div class="mb-6">
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between">
+            <div class="flex items-start space-x-4">
+                <!-- Back Button (for collapsed sidebar) -->
+                <div class="flex-shrink-0">
+                    <a href="/projects" class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-2">
+                        <i class="fas fa-arrow-left mr-1"></i>
+                        Back to Projects
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between">
+            <div class="flex items-start space-x-4">
+                <!-- Project Icon & Info -->
+                <div class="flex-shrink-0">
+                    <div class="w-16 h-16 bg-indigo-100 rounded-xl flex items-center justify-center">
+                        <span id="project-header-badge" class="project-badge project-badge-indigo w-6 h-6"></span>
+                    </div>
+                </div>
+                <div>
+                    <h1 id="project-title" class="text-2xl font-bold text-gray-800 mb-1">Loading Project...</h1>
+                    <p id="project-description" class="text-gray-600 mb-2">Loading project information...</p>
+                    <div class="flex items-center space-x-4 text-sm text-gray-500">
+                        <span id="project-created">Created: Loading...</span>
+                        <span id="project-members">Members: Loading...</span>
+                        <span id="project-dashboards">Dashboards: Loading...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 md:mt-0 flex flex-wrap items-center space-x-3">
+                <!-- Project Members -->
+                <div class="hidden md:flex items-center mr-2">
+                    <div id="project-members-avatars" class="flex -space-x-2 mr-2">
+                        <!-- Members will be populated here -->
+                    </div>
+                    <button id="invite-member-btn" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                        Invite
+                    </button>
+                </div>
+                
+                <!-- Project Actions -->
+                <button id="project-settings-btn" class="inline-flex items-center px-3 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-cog mr-2"></i>
+                    Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="border-b border-gray-200 mb-6">
+        <nav class="flex space-x-8">
+            <button class="tab-btn tab-active py-2 px-1 border-b-2 font-medium text-sm" data-tab="dashboards">
+                Dashboards
+            </button>
+            <button class="tab-btn tab-inactive py-2 px-1 border-b-2 font-medium text-sm" data-tab="members">
+                Team Members
+            </button>
+            <button class="tab-btn tab-inactive py-2 px-1 border-b-2 font-medium text-sm" data-tab="data-sources">
+                Data Sources
+            </button>
+            <button class="tab-btn tab-inactive py-2 px-1 border-b-2 font-medium text-sm" data-tab="settings">
+                Settings
+            </button>
+        </nav>
+    </div>
+
+    <!-- Dashboards Tab Content -->
+    <div id="dashboards-tab" class="tab-content">
+        <!-- Dashboard Header -->
+        <div class="mb-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 id="dashboards-title" class="text-xl font-semibold text-gray-800">Project Dashboards</h2>
+                    <p id="dashboards-subtitle" class="text-sm text-gray-500 mt-1">Loading dashboard information...</p>
+                </div>
+                
+                <div class="mt-4 md:mt-0 flex flex-wrap items-center space-x-3">
+                    <!-- View Toggle -->
+                    <div class="flex rounded-md shadow-sm">
+                        <button id="grid-view" class="px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-l-md focus:z-10 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                            <i class="fas fa-th-large mr-1"></i> Grid
+                        </button>
+                        <button id="list-view" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-r-md hover:bg-gray-50 focus:z-10 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                            <i class="fas fa-list mr-1"></i> List
+                        </button>
+                    </div>
+                    
+                    <!-- Sort Dropdown -->
+                    <div class="relative">
+                        <select id="sort-dashboards" class="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <option value="created_at_desc">Newest First</option>
+                            <option value="created_at_asc">Oldest First</option>
+                            <option value="title_asc">Name A-Z</option>
+                            <option value="title_desc">Name Z-A</option>
+                            <option value="updated_at_desc">Recently Updated</option>
+                        </select>
+                    </div>
+                    
+                    <!-- New Dashboard -->
+                    <button id="new-dashboard-header-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <i class="fas fa-plus mr-2"></i>
+                        New Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
+            <div class="flex flex-wrap items-center justify-between">
+                <div class="flex flex-wrap items-center space-x-4">
+                    <!-- Search Filter -->
+                    <div class="relative w-64">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400 text-sm"></i>
+                        </div>
+                        <input 
+                            id="dashboard-search"
+                            type="text" 
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-600 placeholder-gray-400" 
+                            placeholder="Filter dashboards..."
+                        >
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading Dashboards -->
+        <div id="loading-dashboards" class="hidden flex justify-center items-center p-8">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-spinner spinner text-indigo-600 text-xl"></i>
+                <span class="text-gray-600">Loading dashboards...</span>
+            </div>
+        </div>
+        
+        <!-- Dashboard Grid -->
+        <div id="dashboards-grid" class="dashboard-grid">
+            <!-- Dashboards will be populated here -->
+        </div>
+        
+        <!-- Empty State -->
+        <div id="dashboards-empty" class="hidden text-center py-12">
+            <div class="h-24 w-24 bg-gray-100 mx-auto rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-chart-line text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No dashboards yet</h3>
+            <p class="text-gray-500 mb-4">Create your first dashboard to start analyzing your data</p>
+            <button id="empty-create-dashboard-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <i class="fas fa-plus mr-2"></i>
+                Create Dashboard
+            </button>
+        </div>
+    </div>
+
+    <!-- Team Members Tab Content -->
+    <div id="members-tab" class="tab-content hidden">
+        <div class="mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800">Team Members</h2>
+                    <p class="text-sm text-gray-500 mt-1">Manage project access and permissions</p>
+                </div>
+                <button id="invite-member-header-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Invite Member
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div id="members-content" class="p-6">
+                <div class="text-center py-8">
+                    <i class="fas fa-users text-gray-400 text-3xl mb-4"></i>
+                    <p class="text-gray-500">Member management coming soon</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Sources Tab Content -->
+    <div id="data-sources-tab" class="tab-content hidden">
+        <div class="mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-800">Data Sources</h2>
+                    <p class="text-sm text-gray-500 mt-1">Manage your project's data connections</p>
+                </div>
+                <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add Data Source
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="p-6">
+                <div class="text-center py-8">
+                    <i class="fas fa-database text-gray-400 text-3xl mb-4"></i>
+                    <p class="text-gray-500">Data source management coming soon</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Tab Content -->
+    <div id="settings-tab" class="tab-content hidden">
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-800">Project Settings</h2>
+            <p class="text-sm text-gray-500 mt-1">Configure project details and preferences</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="p-6">
+                <div class="text-center py-8">
+                    <i class="fas fa-cog text-gray-400 text-3xl mb-4"></i>
+                    <p class="text-gray-500">Project settings coming soon</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Dashboard Modal -->
+<div id="create-dashboard-modal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="text-lg font-medium text-gray-900">Create New Dashboard</h3>
+            <button id="close-dashboard-modal" class="p-1 rounded-md hover:bg-gray-100 focus:outline-none">
+                <i class="fas fa-times text-gray-500"></i>
+            </button>
+        </div>
+        <div class="mt-4">
+            <form id="create-dashboard-form">
+                <div class="mb-4">
+                    <label for="dashboard-title" class="block text-sm font-medium text-gray-700 mb-1">Dashboard Name <span class="text-red-500">*</span></label>
+                    <input 
+                        type="text" 
+                        id="dashboard-title" 
+                        name="title"
+                        required
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                        placeholder="Enter dashboard name"
+                    >
+                </div>
+                <div class="mb-4">
+                    <label for="dashboard-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea 
+                        id="dashboard-description" 
+                        name="description"
+                        rows="3" 
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                        placeholder="Enter dashboard description"
+                    ></textarea>
+                </div>
+                <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
+                    <button type="button" id="cancel-dashboard-create" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Cancel
+                    </button>
+                    <button type="submit" id="create-dashboard-submit" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <span class="btn-text">Create Dashboard</span>
+                        <i class="fas fa-spinner spinner ml-2 hidden"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Project Dashboard View JavaScript -->
+<script>
+    // Project dashboard view-specific state
+    let projectDashboardState = {
+        currentProject: null,
+        dashboards: [],
+        filteredDashboards: [],
+        currentTab: 'dashboards',
+        isInitialized: false
+    };
+    
+    // Color mapping for project badges
+    const projectColorMap = {
+        purple: 'project-badge-purple',
+        blue: 'project-badge-blue', 
+        green: 'project-badge-green',
+        yellow: 'project-badge-yellow',
+        red: 'project-badge-red',
+        pink: 'project-badge-pink',
+        indigo: 'project-badge-indigo',
+        teal: 'project-badge-teal',
+        orange: 'project-badge-orange',
+        gray: 'project-badge-gray'
+    };
+
+    // Get project ID from URL
+    function getProjectIdFromUrl() {
+        const pathParts = window.location.pathname.split('/');
+        const projectIndex = pathParts.indexOf('project');
+        return projectIndex !== -1 && pathParts[projectIndex + 1] ? pathParts[projectIndex + 1] : null;
+    }
+
+    // Utility functions
+    function formatDate(dateString) {
+        if (!dateString) return 'Unknown';
+        
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffHours < 1) return 'Just now';
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        if (diffDays === 1) return '1 day ago';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+        return date.toLocaleDateString();
+    }
+
+    // API functions
+    async function fetchProject(projectId) {
+        try {
+            console.log('Fetching project:', projectId);
+            const response = await SnappyLearn.apiCall(`/api/projects/${projectId}`);
+            console.log('Project response:', response);
+            
+            if (response.success && response.data) {
+                return response.data;
+            } else {
+                throw new Error(response.message || 'Invalid project response structure');
+            }
+        } catch (error) {
+            console.error('Error fetching project:', error);
+            throw error;
+        }
+    }
+
+    async function fetchProjectDashboards(projectId) {
+        try {
+            console.log('Fetching dashboards for project:', projectId);
+            const response = await SnappyLearn.apiCall(`/api/projects/${projectId}/dashboards`);
+            console.log('Dashboards response:', response);
+            
+            if (response.success && Array.isArray(response.data)) {
+                return response.data;
+            } else {
+                console.warn('Invalid dashboards response, returning empty array');
+                return [];
+            }
+        } catch (error) {
+            console.error('Error fetching dashboards:', error);
+            return [];
+        }
+    }
+
+    async function createDashboard(projectId, dashboardData) {
+        try {
+            console.log('Creating dashboard for project:', projectId, 'with data:', dashboardData);
+            const response = await SnappyLearn.apiCall(`/api/projects/${projectId}/dashboards`, 'POST', dashboardData);
+            console.log('Create dashboard response:', response);
+            
+            if (response.success && response.data) {
+                return response.data;
+            } else {
+                throw new Error(response.message || 'Invalid response structure');
+            }
+        } catch (error) {
+            console.error('Error creating dashboard:', error);
+            throw error;
+        }
+    }
+
+    // Update UI functions
+    function updateProjectUI(project) {
+        const colorClass = projectColorMap[project.color] || 'project-badge-indigo';
+        const memberCount = project.assigned_users ? project.assigned_users.length : 0;
+        const dashboardCount = projectDashboardState.dashboards.length;
+        
+        // Use 'name' field from API
+        const projectName = project.name || 'Untitled Project';
+        
+        // Update project header
+        document.getElementById('project-header-badge').className = `project-badge ${colorClass} w-6 h-6`;
+        document.getElementById('project-title').textContent = projectName;
+        document.getElementById('project-description').textContent = project.description || 'No description provided';
+        document.getElementById('project-created').textContent = `Created: ${formatDate(project.created_at)}`;
+        document.getElementById('project-members').textContent = `Members: ${memberCount}`;
+        document.getElementById('project-dashboards').textContent = `Dashboards: ${dashboardCount}`;
+        
+        // Update dashboards tab
+        document.getElementById('dashboards-title').textContent = `${projectName} Dashboards`;
+        document.getElementById('dashboards-subtitle').textContent = 
+            `${dashboardCount} dashboard${dashboardCount !== 1 ? 's' : ''} • Last updated: ${formatDate(project.updated_at)}`;
+        
+        // Update project context in layout
+        updateProjectContext(project);
+        
+        // Ensure sidebar is collapsed for project view
+        if (window.SnappyLearn && window.SnappyLearn.setSidebarState) {
+            SnappyLearn.setSidebarState(true); // Set collapsed to true
+        }
+    }
+
+    function updateProjectContext(project) {
+        // Update the project selector in layout to show current project
+        const currentProjectName = document.getElementById('current-project-name');
+        if (currentProjectName) {
+            currentProjectName.textContent = project.name || 'Current Project';
+        }
+        
+        // Update window title
+        if (project.name) {
+            document.title = `${project.name} - Snappy Learn`;
+        }
+    }
+
+    // Render functions
+    function renderDashboardCard(dashboard) {
+        return `
+            <div class="dashboard-item bg-white rounded-lg shadow-sm overflow-hidden border border-transparent hover:border-indigo-200">
+                <a href="/dashboards/${dashboard.id}" class="block">
+                    <!-- Dashboard Preview -->
+                    <div class="h-40 bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400 border-b border-gray-200 overflow-hidden flex items-center justify-center">
+                        <div class="text-center text-white">
+                            <i class="fas fa-chart-line text-4xl mb-2 opacity-80"></i>
+                            <p class="text-sm font-medium opacity-90">Dashboard Preview</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Dashboard Info -->
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-md font-semibold text-gray-800">${dashboard.title}</h3>
+                            <div class="flex items-center">
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mb-3 line-clamp-2">${dashboard.description || 'No description provided'}</p>
+                        <div class="flex items-center justify-between text-xs text-gray-500">
+                            <span>Updated ${formatDate(dashboard.updated_at)}</span>
+                            <div class="flex items-center">
+                                <i class="fas fa-chart-line mr-1"></i>
+                                <span>0 widgets</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                
+                <!-- Dashboard Menu -->
+                <div class="dashboard-item-menu absolute top-2 right-2">
+                    <div class="relative">
+                        <button class="p-1.5 rounded-full bg-white shadow-sm hover:bg-gray-50 focus:outline-none">
+                            <i class="fas fa-ellipsis-v text-gray-500"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderCreateDashboardCard() {
+        return `
+            <div class="dashboard-item bg-white rounded-lg shadow-sm overflow-hidden border border-dashed border-gray-300 flex items-center justify-center hover:border-indigo-300 cursor-pointer" id="create-dashboard-card">
+                <div class="text-center p-6">
+                    <div class="h-12 w-12 bg-indigo-100 mx-auto rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-plus text-indigo-600 text-lg"></i>
+                    </div>
+                    <h3 class="text-md font-medium text-gray-800 mb-1">Create New Dashboard</h3>
+                    <p class="text-sm text-gray-500">Start from scratch or use a template</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderDashboards(dashboardList = projectDashboardState.dashboards) {
+        const grid = document.getElementById('dashboards-grid');
+        const emptyState = document.getElementById('dashboards-empty');
+        
+        console.log('Rendering dashboards:', dashboardList ? dashboardList.length : 0);
+        
+        if (!dashboardList || dashboardList.length === 0) {
+            grid.innerHTML = renderCreateDashboardCard();
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        
+        emptyState.classList.add('hidden');
+        
+        const dashboardCards = dashboardList.map(renderDashboardCard).join('');
+        const createCard = renderCreateDashboardCard();
+        
+        grid.innerHTML = dashboardCards + createCard;
+        
+        // Re-attach event listeners
+        attachDashboardListeners();
+    }
+
+    // Event handlers
+    function attachDashboardListeners() {
+        const createCard = document.getElementById('create-dashboard-card');
+        if (createCard) {
+            createCard.addEventListener('click', openCreateDashboardModal);
+        }
+    }
+
+    function openCreateDashboardModal() {
+        document.getElementById('create-dashboard-modal').classList.remove('hidden');
+    }
+
+    function closeCreateDashboardModal() {
+        document.getElementById('create-dashboard-modal').classList.add('hidden');
+        resetCreateDashboardForm();
+    }
+
+    function resetCreateDashboardForm() {
+        document.getElementById('create-dashboard-form').reset();
+        
+        const submitBtn = document.getElementById('create-dashboard-submit');
+        const btnText = submitBtn.querySelector('.btn-text');
+        const spinner = submitBtn.querySelector('.spinner');
+        
+        if (submitBtn) submitBtn.disabled = false;
+        if (btnText) btnText.textContent = 'Create Dashboard';
+        if (spinner) spinner.classList.add('hidden');
+    }
+
+    async function handleCreateDashboard(event) {
+        event.preventDefault();
+        
+        if (!projectDashboardState.currentProject) {
+            SnappyLearn?.showToast('Project not loaded', 'error');
+            return;
+        }
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        const submitBtn = document.getElementById('create-dashboard-submit');
+        const btnText = submitBtn.querySelector('.btn-text');
+        const spinner = submitBtn.querySelector('.spinner');
+        
+        // Show loading state
+        if (submitBtn) submitBtn.disabled = true;
+        if (btnText) btnText.textContent = 'Creating...';
+        if (spinner) spinner.classList.remove('hidden');
+        
+        try {
+            const dashboardData = {
+                title: formData.get('title'),
+                description: formData.get('description')
+            };
+            
+            console.log('Creating dashboard with data:', dashboardData);
+            const newDashboard = await createDashboard(projectDashboardState.currentProject.id, dashboardData);
+            console.log('New dashboard created:', newDashboard);
+            
+            // Add to dashboards array and re-render
+            projectDashboardState.dashboards.unshift(newDashboard);
+            renderDashboards();
+            
+            // Update project UI to reflect new dashboard count
+            updateProjectUI(projectDashboardState.currentProject);
+            
+            closeCreateDashboardModal();
+            SnappyLearn?.showToast('Dashboard created successfully!');
+            
+        } catch (error) {
+            console.error('Create dashboard error:', error);
+            SnappyLearn?.showToast(error.message || 'Failed to create dashboard', 'error');
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+            if (btnText) btnText.textContent = 'Create Dashboard';
+            if (spinner) spinner.classList.add('hidden');
+        }
+    }
+
+    function handleTabSwitch(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('tab-active');
+            btn.classList.add('tab-inactive');
+        });
+        
+        const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+        if (activeTab) {
+            activeTab.classList.remove('tab-inactive');
+            activeTab.classList.add('tab-active');
+        }
+        
+        // Show/hide tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        const tabContent = document.getElementById(`${tabName}-tab`);
+        if (tabContent) {
+            tabContent.classList.remove('hidden');
+        }
+        
+        projectDashboardState.currentTab = tabName;
+    }
+
+    function handleDashboardSearch() {
+        const searchTerm = document.getElementById('dashboard-search').value.toLowerCase();
+        const filtered = projectDashboardState.dashboards.filter(dashboard => 
+            dashboard.title.toLowerCase().includes(searchTerm) ||
+            (dashboard.description && dashboard.description.toLowerCase().includes(searchTerm))
+        );
+        projectDashboardState.filteredDashboards = filtered;
+        renderDashboards(filtered);
+    }
+
+    function handleDashboardSort() {
+        const sortBy = document.getElementById('sort-dashboards').value;
+        const dashboards = projectDashboardState.filteredDashboards.length > 0 ? 
+            projectDashboardState.filteredDashboards : projectDashboardState.dashboards;
+        const sorted = [...dashboards];
+        
+        switch(sortBy) {
+            case 'created_at_desc':
+                sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+                break;
+            case 'created_at_asc':
+                sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+                break;
+            case 'updated_at_desc':
+                sorted.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+                break;
+            case 'title_asc':
+                sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+                break;
+            case 'title_desc':
+                sorted.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+                break;
+        }
+        
+        renderDashboards(sorted);
+    }
+
+    // Project dashboard view initialization
+    async function initializeProjectDashboardView() {
+        console.log('Initializing project dashboard view...');
+        
+        // Don't initialize twice
+        if (projectDashboardState.isInitialized) {
+            console.log('Project dashboard view already initialized');
+            return;
+        }
+        
+        const projectId = getProjectIdFromUrl();
+        console.log('Project ID from URL:', projectId);
+        
+        if (!projectId) {
+            console.error('No project ID found in URL');
+            SnappyLearn?.showToast('Project not found', 'error');
+            setTimeout(() => {
+                window.location.href = '/projects';
+            }, 2000);
+            return;
+        }
+        
+        try {
+            // Wait for layout to be ready
+            let attempts = 0;
+            while (!window.SnappyLearn && attempts < 30) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (!window.SnappyLearn) {
+                console.warn('Layout not ready, but continuing...');
+            }
+            
+            // Fetch project data and dashboards
+            console.log('Fetching project data...');
+            const [project, projectDashboards] = await Promise.all([
+                fetchProject(projectId),
+                fetchProjectDashboards(projectId)
+            ]);
+            
+            console.log('Fetched data:', { 
+                project: project ? project.name : 'null', 
+                dashboards: projectDashboards ? projectDashboards.length : 0 
+            });
+            
+            projectDashboardState.currentProject = project;
+            projectDashboardState.dashboards = projectDashboards || [];
+            
+            // Update UI
+            updateProjectUI(project);
+            renderDashboards();
+            
+            // Show main content
+            document.getElementById('page-loading').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            
+            projectDashboardState.isInitialized = true;
+            console.log('Project dashboard view initialized successfully');
+            
+        } catch (error) {
+            console.error('Failed to initialize project dashboard view:', error);
+            SnappyLearn?.showToast(`Failed to load project: ${error.message}`, 'error');
+            
+            // Show error state
+            document.getElementById('page-loading').classList.add('hidden');
+            document.getElementById('error-state').classList.remove('hidden');
+        }
+    }
+
+    // Event listeners for project dashboard view
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Project dashboard view DOM loaded');
+        
+        // Initialize with a delay to ensure layout is ready
+        setTimeout(() => {
+            initializeProjectDashboardView();
+        }, 500);
+        
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                handleTabSwitch(btn.dataset.tab);
+            });
+        });
+        
+        // Dashboard modal controls
+        document.getElementById('new-dashboard-header-btn')?.addEventListener('click', openCreateDashboardModal);
+        document.getElementById('empty-create-dashboard-btn')?.addEventListener('click', openCreateDashboardModal);
+        document.getElementById('close-dashboard-modal')?.addEventListener('click', closeCreateDashboardModal);
+        document.getElementById('cancel-dashboard-create')?.addEventListener('click', closeCreateDashboardModal);
+        
+        // Form submission
+        document.getElementById('create-dashboard-form')?.addEventListener('submit', handleCreateDashboard);
+        
+        // Search and filters
+        document.getElementById('dashboard-search')?.addEventListener('input', handleDashboardSearch);
+        document.getElementById('sort-dashboards')?.addEventListener('change', handleDashboardSort);
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('create-dashboard-modal');
+            if (event.target === modal) {
+                closeCreateDashboardModal();
+            }
+        });
+    });
+
+    console.log('Project dashboard view script loaded');
+</script>
