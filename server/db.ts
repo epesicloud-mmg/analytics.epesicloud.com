@@ -1,9 +1,6 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
-
-neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -11,13 +8,11 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configure for Replit environment - disable SSL verification for local development
+// Configure for Replit environment - use standard PostgreSQL driver instead of Neon serverless
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('helium') 
-    ? false 
-    : { rejectUnauthorized: false }
+  ssl: false // Disable SSL for Replit's internal database
 };
 
 export const pool = new Pool(poolConfig);
-export const db = drizzle({ client: pool, schema });
+export const db = drizzle(pool, { schema });
