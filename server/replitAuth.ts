@@ -54,17 +54,17 @@ function updateUserSession(
   user.expires_at = user.claims?.exp;
 }
 
-async function upsertUser(
-  claims: any,
-) {
-  await storage.upsertUser({
-    id: claims["sub"],
-    email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    profileImageUrl: claims["profile_image_url"],
-  });
-}
+// async function upsertUser(
+//   claims: any,
+// ) {
+//   await storage.upsertUser({
+//     id: claims["sub"],
+//     email: claims["email"],
+//     firstName: claims["first_name"],
+//     lastName: claims["last_name"],
+//     profileImageUrl: claims["profile_image_url"],
+//   });
+// }
 
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
