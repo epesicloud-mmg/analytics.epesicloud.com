@@ -1,10 +1,13 @@
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, Database, Users, Zap, TrendingUp, Shield } from "lucide-react";
 
 export default function Landing() {
-  const handleLogin = () => {
-    window.location.href = "/api/login";
+  const [, setLocation] = useLocation();
+
+  const handleGetStarted = () => {
+    setLocation("/login");
   };
 
   return (
@@ -24,7 +27,7 @@ export default function Landing() {
               </p>
               <div className="mt-10 flex items-center gap-x-6">
                 <Button 
-                  onClick={handleLogin}
+                  onClick={handleGetStarted}
                   size="lg"
                   className="bg-indigo-600 hover:bg-indigo-700"
                 >
@@ -166,7 +169,7 @@ export default function Landing() {
           </p>
           <div className="mt-10 flex items-center justify-center gap-x-6">
             <Button 
-              onClick={handleLogin}
+              onClick={handleGetStarted}
               size="lg"
               className="bg-indigo-600 hover:bg-indigo-700"
             >

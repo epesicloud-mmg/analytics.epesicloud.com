@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./auth";
 import { insertProjectSchema, insertDashboardSchema, insertDataSourceSchema, insertOrganizationSchema, insertBlockSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -21,9 +21,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
-      res.json(user);
+      // Don't send password to client
+      const { password: _, ...userWithoutPassword } = user!;
+      res.json(userWithoutPassword);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -33,7 +35,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Organization routes
   app.post('/api/organizations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const data = insertOrganizationSchema.parse({ ...req.body, ownerId: userId });
       
       const organization = await storage.createOrganization(data);
@@ -50,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/organizations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       let organizations = await storage.getUserOrganizations(userId);
       
       // If user has no organizations, create a default one
@@ -92,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project routes
   app.post('/api/projects', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const data = insertProjectSchema.parse({ ...req.body, createdById: userId });
       
       const project = await storage.createProject(data);
@@ -178,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard routes
   app.post('/api/dashboards', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const data = insertDashboardSchema.parse({ ...req.body, createdById: userId });
       
       const dashboard = await storage.createDashboard(data);
@@ -264,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Data source routes
   app.post('/api/data-sources', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { name, type, organizationId } = req.body;
       
       let config = {};
@@ -362,7 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Block routes for AI-first dashboard builder
   app.post('/api/blocks', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const data = insertBlockSchema.parse({ ...req.body, createdById: userId });
       
       const block = await storage.createBlock(data);
@@ -471,7 +473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Block Generation
   app.post('/api/ai/generate-block', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { prompt, dashboardId, dataSources } = req.body;
       
       // Generate block using AI (simplified for now)
@@ -531,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/epesi-agent/chat', isAuthenticated, async (req: any, res) => {
     try {
       const { prompt, dashboardId, conversationId } = req.body;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       console.log("Epesi Agent request:", { prompt, dashboardId, userId });
       
@@ -703,7 +705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const dashboardId = parseInt(req.params.id);
       const { title, description, type, size, content, position } = req.body;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // Generate unique block ID
       const blockId = `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -1080,7 +1082,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const dashboardId = parseInt(req.params.dashboardId);
       const { title } = req.body;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       const conversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
